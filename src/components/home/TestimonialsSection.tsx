@@ -1,0 +1,1 @@
+export function TestimonialsSection() { return <section className="testimonials section-pad"><p className="eyebrow">Kind words</p><blockquote>“The light changed the whole feeling of our dining room. It feels personal, warm and beautifully made.”</blockquote><p className="testimonial-name">Areeba K. <span>Verified customer</span></p></section>; }
