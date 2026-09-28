@@ -1,10 +1,84 @@
+"use client";
+
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
-const categories = [
-  ["Hanging & ceiling lights", "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=800&q=85"],
-  ["Wall décor & panels", "https://images.unsplash.com/photo-1577083288073-40892c0860a4?auto=format&fit=crop&w=800&q=85"],
-  ["Custom & signature designs", "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?auto=format&fit=crop&w=800&q=85"],
-];
-export function CategorySection() { return <section className="section-pad category-section"><SectionHeading eyebrow="Find your feeling" title="Made to live" accent="beautifully." /><div className="category-grid">{categories.map(([name, image]) => <Link href="/catalog" className="category-card" key={name}><img src={image} alt={name} /><span>{name}<ArrowUpRight size={17} /></span></Link>)}</div></section>; }
+type CollectionItem = {
+  id?: string;
+  name: string;
+  image: string;
+  description?: string;
+  active?: boolean;
+};
+
+export function CategorySection() {
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCollections() {
+      try {
+        const response = await fetch("/api/collections");
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as CollectionItem[];
+        const activeCollections = (data ?? []).filter((item) => item.active !== false);
+
+        if (mounted) {
+          setCollections(activeCollections);
+        }
+      } catch {
+        if (mounted) setCollections([]);
+      }
+    }
+
+    void loadCollections();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <section className="section-pad category-section" id="collections">
+      <div className="category-intro">
+        <SectionHeading eyebrow="Explore the collection" title="Curated for" accent="thoughtful interiors." />
+        <p>
+          Signature lighting, handcrafted décor, and personalized accents designed for modern homes that value warmth,
+          texture, and character.
+        </p>
+        <Link className="text-link" href="/catalog">
+          View all collections
+          <ArrowUpRight size={16} />
+        </Link>
+      </div>
+
+      <div className="category-grid">
+        {collections.slice(0, 6).map((item, index) => (
+          <Link
+            href="/catalog"
+            className={`category-card ${index === 0 || index === 3 ? "wide" : ""}`}
+            key={item.name}
+          >
+            <img src={item.image} alt={item.name} />
+            <div className="category-overlay" />
+            <div className="category-meta">
+              <div>
+                <span className="category-label">Collection</span>
+                <h3>{item.name}</h3>
+              </div>
+              <ArrowUpRight size={18} />
+            </div>
+            <p className="category-description">{item.description}</p>
+          </Link>
+        ))}
+        {!collections.length ? <p className="empty-state">No collections found.</p> : null}
+      </div>
+    </section>
+  );
+}
