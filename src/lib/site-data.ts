@@ -7,8 +7,8 @@ import { Collection } from "@/models/Collection";
 import { HeroSlide } from "@/models/HeroSlide";
 import { HomepageSection } from "@/models/HomepageSection";
 import { Product } from "@/models/Product";
-import { Settings } from "@/models/Settings";
 import { Testimonial } from "@/models/Testimonial";
+import { getSettings } from "@/lib/settings";
 
 export type ProductRecord = {
   id: string;
@@ -57,7 +57,7 @@ export async function readSiteData(): Promise<SiteData> {
     HeroSlide.find().sort({ order: 1 }).lean(),
     HomepageSection.find().sort({ order: 1 }).lean(),
     Testimonial.find().sort({ createdAt: -1 }).lean(),
-    Settings.findById("site-settings").lean(),
+    getSettings(),
   ]);
 
   return {
@@ -67,7 +67,7 @@ export async function readSiteData(): Promise<SiteData> {
     heroSlides: serializeRecords(heroSlides as Array<Record<string, unknown>>) as HeroSlideRecord[],
     homepageSections: serializeRecords(homepageSections as Array<Record<string, unknown>>) as HomepageSection[],
     testimonials: serializeRecords(testimonials as Array<Record<string, unknown>>) as TestimonialRecord[],
-    settings: settings as unknown as WebsiteSettings,
+    settings,
   };
 }
 

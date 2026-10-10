@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
 import { Category } from "@/models/Category";
 import { slugify } from "@/lib/site-data";
 
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB();
     const user = await requireAdminUser();
     if (!user) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
@@ -41,6 +43,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   try {
+    await connectDB();
     const { id } = await params;
     const deleted = await Category.findByIdAndDelete(id);
     if (!deleted) return NextResponse.json({ message: "Category not found." }, { status: 404 });

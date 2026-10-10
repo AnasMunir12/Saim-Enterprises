@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Menu, Search, ShoppingBag, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useStore } from "@/components/StoreProvider";
@@ -10,7 +10,7 @@ import { UserRound } from "lucide-react";
 
 export function Header({ onCartOpen }: { onCartOpen: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { cartCount, wishlist } = useStore();
+  const { cartCount } = useStore();
 
   return (
     <header className="site-header">
@@ -45,7 +45,7 @@ export function Header({ onCartOpen }: { onCartOpen: () => void }) {
 >
   <UserRound size={18} />
 </Link>
-        <button className="bag-button" onClick={onCartOpen} aria-label={`Open cart with ${cartCount} items`}>
+        <button className="bag-button" onClick={onCartOpen} aria-label={`Open cart with ${cartCount} ${cartCount === 1 ? "item" : "items"}`}>
           <ShoppingBag size={19} />
           <span>{cartCount}</span>
         </button>

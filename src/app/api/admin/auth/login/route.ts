@@ -30,6 +30,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
+    if (user.role === "user") {
+      return NextResponse.json({ message: "This account does not have admin access." }, { status: 403 });
+    }
+
     await setSessionCookie(String(user._id));
 
     return NextResponse.json({

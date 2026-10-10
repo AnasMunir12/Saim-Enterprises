@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
 import { serializeRecords } from "@/lib/mongo-record";
 import { createId } from "@/lib/site-data";
+import { connectDB } from "@/lib/mongodb";
 import { HeroSlide } from "@/models/HeroSlide";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await connectDB();
     const slides = await HeroSlide.find().sort({ order: 1 }).lean();
     return NextResponse.json(serializeRecords(slides as Array<Record<string, unknown>>));
   } catch (error) {
@@ -23,6 +25,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await connectDB();
     const payload = (await request.json()) as {
     eyebrow?: string;
     title?: string;
@@ -61,6 +64,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectDB();
     const user = await requireAdminUser();
     if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     const id = new URL(request.url).searchParams.get("id");

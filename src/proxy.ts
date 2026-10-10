@@ -3,8 +3,6 @@ import type { NextRequest } from "next/server";
 
 import { AUTH_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
-const publicRoutes = new Set(["/login", "/signup"]);
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -21,14 +19,9 @@ export async function proxy(request: NextRequest) {
   const session = token ? await verifySessionToken(token) : null;
   const isAuthenticated = Boolean(session);
   const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
-  const isPublicAuthRoute = publicRoutes.has(pathname);
 
   if (isAdminRoute && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (isPublicAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   return NextResponse.next();

@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
 import { serializeRecord } from "@/lib/mongo-record";
+import { connectDB } from "@/lib/mongodb";
 import { Product } from "@/models/Product";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB();
     const { id } = await params;
     const product = await Product.findById(id).lean();
 
@@ -23,6 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await connectDB();
     const user = await requireAdminUser();
     if (!user) {
       return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
@@ -67,6 +70,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   try {
+    await connectDB();
     const { id } = await params;
     const deleted = await Product.findByIdAndDelete(id);
     if (!deleted) {

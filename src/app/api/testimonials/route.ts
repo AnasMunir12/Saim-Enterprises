@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { requireAdminUser } from "@/lib/auth";
 import { serializeRecords } from "@/lib/mongo-record";
+import { connectDB } from "@/lib/mongodb";
 import { Testimonial } from "@/models/Testimonial";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await connectDB();
     const testimonials = await Testimonial.find().sort({ createdAt: -1 }).lean();
     return NextResponse.json(serializeRecords(testimonials as Array<Record<string, unknown>>));
   } catch (error) {

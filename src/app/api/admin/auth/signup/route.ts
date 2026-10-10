@@ -48,6 +48,15 @@ export async function POST(request: Request) {
     }
 
     await connectDB();
+    const existingAdmin = await User.exists({ role: { $ne: "user" } });
+
+    if (existingAdmin) {
+      return NextResponse.json(
+        { message: "Admin registration is closed. Ask an administrator to create an account." },
+        { status: 403 },
+      );
+    }
+
     const existingUser = await User.findOne({ email }).lean();
 
     if (existingUser) {
@@ -58,7 +67,7 @@ export async function POST(request: Request) {
       name,
       email,
       passwordHash: await hashPassword(password),
-      role: "user",
+      role: "admin",
     });
 
     await setSessionCookie(String(user._id));

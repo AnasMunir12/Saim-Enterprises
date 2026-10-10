@@ -17,21 +17,26 @@ type StoreValue = {
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartLine[]>(() => {
-    if (typeof window === "undefined") return [];
-    const saved = window.localStorage.getItem("saim-cart");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [wishlist, setWishlist] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    const saved = window.localStorage.getItem("saim-wishlist");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [hasLoadedStorage, setHasLoadedStorage] = useState(false);
 
   useEffect(() => {
+    const savedCart = window.localStorage.getItem("saim-cart");
+    const savedWishlist = window.localStorage.getItem("saim-wishlist");
+
+    queueMicrotask(() => {
+      setCart(savedCart ? JSON.parse(savedCart) : []);
+      setWishlist(savedWishlist ? JSON.parse(savedWishlist) : []);
+      setHasLoadedStorage(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedStorage) return;
     window.localStorage.setItem("saim-cart", JSON.stringify(cart));
     window.localStorage.setItem("saim-wishlist", JSON.stringify(wishlist));
-  }, [cart, wishlist]);
+  }, [cart, wishlist, hasLoadedStorage]);
 
   const value = useMemo(() => ({
     cart,

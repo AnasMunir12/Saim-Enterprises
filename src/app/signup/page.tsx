@@ -33,8 +33,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/admin");
-      router.refresh();
+      router.replace("/admin/dashboard");
     } catch {
       setError("Unable to connect to the server. Please try again.");
       setLoading(false);

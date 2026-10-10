@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
 import { serializeRecords } from "@/lib/mongo-record";
 import { createId, slugify } from "@/lib/site-data";
+import { connectDB } from "@/lib/mongodb";
 import { Collection } from "@/models/Collection";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await connectDB();
     const collections = await Collection.find().sort({ sortOrder: 1, name: 1 }).lean();
     return NextResponse.json(serializeRecords(collections as Array<Record<string, unknown>>));
   } catch (error) {
@@ -21,10 +23,8 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
-
   try {
-    const user = await requireAdminUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
+    await connectDB();
     const payload = (await request.json()) as { name?: string; description?: string; image?: string; active?: boolean; featured?: boolean };
     if (!payload.name?.trim()) return NextResponse.json({ message: "Collection name is required." }, { status: 400 });
     const count = await Collection.countDocuments();
