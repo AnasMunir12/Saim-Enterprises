@@ -1,52 +1,61 @@
-import { ArrowRight, Camera, MessageCircle } from "lucide-react";
-import { WHATSAPP_LINK } from "@/lib/constants";
-import { galleryImages } from "@/lib/homeData";
+"use client";
 
-export function NewsletterSection() {
+import { useState, type FormEvent } from "react";
+import { InspirationGallery } from "@/components/home/InspirationGallery";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { HoneypotField, TextField } from "@/components/ui/FormField";
+import { NO_COPY, type HomeSectionCopy } from "@/lib/homepage-sections";
+
+type State = { kind: "idle" } | { kind: "sending" } | { kind: "done"; message: string } | { kind: "error"; message: string };
+
+// Inspiration gallery followed by the email sign-up.
+export function NewsletterSection({ copy = NO_COPY }: { copy?: HomeSectionCopy }) {
+  const [email, setEmail] = useState("");
+  const [trap, setTrap] = useState("");
+  const [state, setState] = useState<State>({ kind: "idle" });
+
+  async function subscribe(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (state.kind === "sending") return;
+    setState({ kind: "sending" });
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, website: trap, source: "home" }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { message?: string };
+      if (!response.ok) {
+        setState({ kind: "error", message: data.message ?? "Something went wrong. Please try again." });
+        return;
+      }
+      setEmail("");
+      setState({ kind: "done", message: data.message ?? "Thank you. You are on the list." });
+    } catch {
+      setState({ kind: "error", message: "Unable to reach the server. Please try again." });
+    }
+  }
+
   return (
     <>
-      <section className="social-gallery">
-        <div className="section-row">
-          <div>
-            <p className="eyebrow">Follow the feeling</p>
-            <h2>From our studio.</h2>
-          </div>
-          <a className="text-link" href="#top">
-            <Camera size={16} /> @saimenterprises
-          </a>
-        </div>
+      <InspirationGallery copy={copy} />
 
-        <div className="gallery-grid">
-          {galleryImages.map((image, index) => (
-            <img key={`${image}-${index}`} src={image} alt="Saim Enterprises handcrafted interior décor" />
-          ))}
-        </div>
-      </section>
-
-      <section className="newsletter">
+      <section className="newsletter" aria-labelledby="newsletter-heading">
         <div>
           <p className="eyebrow">Stay a while</p>
-          <h2>
-            Bring your idea to
-            <br />
-            <em>life.</em>
-          </h2>
+          <h2 id="newsletter-heading">{copy.title || <>Bring your idea to <em>life.</em></>}</h2>
+          <p className="newsletter__lead">New releases, studio notes and custom project updates, sent now and then.</p>
         </div>
 
-        <div className="newsletter-actions">
-          <form onSubmit={(event) => event.preventDefault()}>
-            <input type="email" placeholder="Your email address" aria-label="Email address" required />
-            <button type="submit" aria-label="Subscribe to newsletter">
-              <ArrowRight size={18} />
-            </button>
-            <small>New releases, studio notes and custom project updates.</small>
-          </form>
-
-          <a className="whatsapp-inline" href={`${WHATSAPP_LINK}?text=Hi%20Saim%20Enterprises,%20I%20would%20like%20to%20discuss%20a%20custom%20piece.`}>
-            <MessageCircle size={17} />
-            Chat on WhatsApp
-          </a>
-        </div>
+        <form className="newsletter__form" onSubmit={subscribe}>
+          <TextField label="Email address" type="email" name="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required maxLength={254} />
+          <HoneypotField value={trap} onChange={setTrap} />
+          <Button type="submit" size="lg" block loading={state.kind === "sending"}>Subscribe</Button>
+          <p className="newsletter__note">No spam. Unsubscribe whenever you like.</p>
+          {state.kind === "done" ? <Alert tone="success">{state.message}</Alert> : null}
+          {state.kind === "error" ? <Alert tone="error">{state.message}</Alert> : null}
+        </form>
       </section>
     </>
   );

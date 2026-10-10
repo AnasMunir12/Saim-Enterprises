@@ -1,0 +1,433 @@
+/* Account dashboard, order cards and order tracking. */
+
+.account {
+    display: grid;
+    gap: var(--space-5);
+    padding: var(--space-6) var(--pad-x) var(--space-9);
+}
+
+.account__main {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: var(--space-5) var(--space-4);
+}
+
+.card__head {
+    align-items: baseline;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    gap: var(--space-3);
+    justify-content: space-between;
+    margin-bottom: var(--space-5);
+    padding-bottom: var(--space-4);
+}
+
+.card__head h2 {
+    font-size: 1.7rem;
+}
+
+.card__head span {
+    color: var(--muted);
+    font-size: var(--text-xs);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.profile {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.profile__top {
+    align-items: center;
+    display: flex;
+    gap: var(--space-4);
+}
+
+.profile__top h2 {
+    font-size: 1.5rem;
+}
+
+.profile__top p {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+}
+
+.profile__avatar {
+    border-radius: var(--radius-pill);
+    flex: none;
+    height: 64px;
+    object-fit: cover;
+    width: 64px;
+}
+
+.profile__initial {
+    align-items: center;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    font-family: var(--font-serif);
+    font-size: 1.7rem;
+    justify-content: center;
+}
+
+.profile__meta {
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: var(--space-3);
+    margin: 0;
+    padding-top: var(--space-4);
+}
+
+.profile__meta div {
+    display: flex;
+    font-size: var(--text-sm);
+    justify-content: space-between;
+}
+
+.profile__meta dt {
+    color: var(--muted);
+}
+
+.profile__meta dd {
+    margin: 0;
+}
+
+.account-empty {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-3);
+    text-align: center;
+}
+
+.account-empty svg {
+    color: var(--accent-ink);
+}
+
+.account-empty p {
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    max-width: 30ch;
+}
+
+.wish-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+}
+
+.wish-item {
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+}
+
+.wish-item__image {
+    aspect-ratio: 1;
+    background: var(--sand);
+    display: block;
+    overflow: hidden;
+    position: relative;
+}
+
+.wish-item__image img,
+.wish-item__image .img-fallback {
+    height: 100%;
+    inset: 0;
+    object-fit: cover;
+    position: absolute;
+    width: 100%;
+}
+
+.wish-item__body {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-4);
+}
+
+.wish-item__body h3 {
+    font-size: 1.2rem;
+}
+
+.wish-item__body p {
+    color: var(--muted);
+    font-size: var(--text-xs);
+}
+
+.wish-item__actions {
+    align-items: center;
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.wish-item__actions .btn {
+    flex: 1;
+}
+
+/* Orders (account and tracking) */
+.order-list {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.order-card {
+    border: 1px solid var(--line);
+    scroll-margin-top: 110px;
+}
+
+.order-card.is-highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(166, 90, 61, 0.18);
+}
+
+.order-card__head,
+.order-card__foot {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+}
+
+.order-card__head {
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+}
+
+.order-card__head h2,
+.order-card__head strong {
+    font-size: 1.15rem;
+}
+
+.order-card__head h2 {
+    margin-bottom: 2px;
+}
+
+.order-card__head span:not(.badge),
+.order-card__foot {
+    color: var(--muted);
+    font-size: var(--text-sm);
+}
+
+.order-card__items {
+    padding: var(--space-2) var(--space-4);
+}
+
+.order-card__items li {
+    align-items: center;
+    display: grid;
+    font-size: var(--text-sm);
+    gap: var(--space-3);
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    padding: var(--space-3) 0;
+}
+
+.order-card__items li + li {
+    border-top: 1px solid var(--line);
+}
+
+.order-card__thumb {
+    aspect-ratio: 4 / 5;
+    background: var(--sand);
+    overflow: hidden;
+    position: relative;
+}
+
+.order-card__thumb img,
+.order-card__thumb .img-fallback {
+    height: 100%;
+    inset: 0;
+    object-fit: cover;
+    position: absolute;
+    width: 100%;
+}
+
+.order-card__name {
+    display: grid;
+    min-width: 0;
+}
+
+.order-card__name small {
+    color: var(--muted);
+    font-size: var(--text-xs);
+}
+
+.order-card__foot {
+    border-top: 1px solid var(--line);
+}
+
+.order-card__foot strong {
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+.order-card__foot p {
+    flex-basis: 100%;
+}
+
+/* Tracking */
+.track {
+    margin: 0 auto;
+    max-width: 960px;
+    padding: var(--space-6) var(--gutter) var(--space-9);
+}
+
+.track__lookup {
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    max-width: 440px;
+    min-height: 48px;
+    padding: 0 var(--space-3);
+}
+
+.track__lookup input {
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    flex: 1;
+    font-size: 16px;
+    min-height: 44px;
+    min-width: 0;
+}
+
+.track__lookup input:focus-visible {
+    outline: none;
+}
+
+.track__count {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
+}
+
+.track-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: var(--space-6) var(--space-4) var(--space-2);
+}
+
+.track-steps li {
+    align-items: center;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    font-weight: 600;
+    gap: var(--space-2);
+    letter-spacing: 0.06em;
+    position: relative;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.track-steps li::before {
+    background: var(--line);
+    content: "";
+    height: 2px;
+    left: -50%;
+    position: absolute;
+    top: 9px;
+    width: 100%;
+}
+
+.track-steps li:first-child::before {
+    display: none;
+}
+
+.track-steps li.is-done::before,
+.track-steps li.is-current::before {
+    background: var(--success);
+}
+
+.track-steps__mark {
+    align-items: center;
+    background: var(--surface);
+    display: flex;
+    height: 20px;
+    justify-content: center;
+    position: relative;
+    width: 20px;
+    z-index: 1;
+}
+
+.track-steps__mark i {
+    background: var(--surface);
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    height: 14px;
+    width: 14px;
+}
+
+.track-steps li.is-done,
+.track-steps li.is-current {
+    color: var(--ink);
+}
+
+.track-steps li.is-done .track-steps__mark,
+.track-steps li.is-current .track-steps__mark {
+    color: var(--success);
+}
+
+.track-note {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
+    padding: 0 var(--space-4);
+    text-align: center;
+}
+
+.track-cancelled {
+    align-items: center;
+    background: var(--danger-bg);
+    color: var(--danger);
+    display: flex;
+    font-size: var(--text-sm);
+    gap: var(--space-3);
+    margin: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+}
+
+@media (min-width: 900px) {
+    .account {
+        align-items: start;
+        gap: var(--space-6);
+        grid-template-columns: 320px minmax(0, 1fr);
+        padding-top: var(--space-8);
+    }
+
+    .profile-card {
+        position: sticky;
+        top: calc(var(--header-h) + var(--space-4));
+    }
+
+    .card {
+        padding: var(--space-6);
+    }
+
+    .track-steps li {
+        font-size: var(--text-xs);
+        letter-spacing: 0.1em;
+    }
+}

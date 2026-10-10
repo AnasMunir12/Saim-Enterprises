@@ -1,9 +1,11 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { ButtonLink } from "@/components/ui/Button";
+import { Skeleton, SkeletonLine } from "@/components/ui/Skeleton";
 
 type HeroSlide = {
   id?: string;
@@ -18,130 +20,129 @@ type HeroSlide = {
   active?: boolean;
 };
 
+const AUTOPLAY_MS = 6000;
+
 export function HeroSlider() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [active, setActive] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-
-    async function loadSlides() {
-      try {
-        const response = await fetch("/api/content/hero");
-        if (!response.ok) {
-          return;
-        }
-
-        const data = (await response.json()) as HeroSlide[];
-        const activeSlides = (data ?? []).filter((slide) => slide.active !== false);
-
-        if (mounted) {
-          setSlides(activeSlides);
-          setActive(0);
-        }
-      } catch {
-        if (mounted) setSlides([]);
-      }
-    }
-
-    void loadSlides();
-
+    fetch("/api/content/hero", { cache: "no-store" })
+      .then(async (response) => (response.ok ? ((await response.json()) as HeroSlide[]) : []))
+      .then((data) => {
+        if (mounted) setSlides((data ?? []).filter((slide) => slide.active !== false));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted) setLoaded(true);
+      });
     return () => {
       mounted = false;
     };
   }, []);
 
+  // Autoplay stops while the visitor hovers or focuses the hero, and never runs for reduced-motion visitors.
   useEffect(() => {
-    if (!slides.length) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % slides.length);
-    }, 5000);
-
+    if (slides.length < 2 || paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), AUTOPLAY_MS);
     return () => window.clearInterval(timer);
-  }, [slides]);
-
-  const goNext = () => {
-    setActive((current) => (current + 1) % slides.length);
-  };
-
-  const goPrevious = () => {
-    setActive((current) => (current - 1 + slides.length) % slides.length);
-  };
+  }, [slides.length, paused]);
 
   const slide = slides[active];
 
   if (!slide) {
-    return <section className="hero-slider" id="top"><div className="hero-content"><p className="eyebrow">Saim Enterprises</p><p className="hero-copy">Loading the latest collection...</p></div></section>;
+    if (!loaded) {
+      return (
+        <section className="hero hero--loading" aria-busy="true" aria-label="Loading featured collection">
+          <Skeleton className="hero__media" />
+          <div className="hero__copy"><SkeletonLine wide /><SkeletonLine /></div>
+        </section>
+      );
+    }
+    // No slides published: a plain brand hero keeps the page useful.
+    return (
+      <section className="hero hero--plain">
+        <div className="hero__copy">
+          <p className="eyebrow">Saim Enterprises</p>
+          <h1 className="hero__title">Objects with <em>a little soul.</em></h1>
+          <p className="hero__lead">Handcrafted lighting, décor and custom pieces, made in our Lahore studio.</p>
+          <div className="hero__actions">
+            <ButtonLink href="/catalog" size="lg">Shop the collection <ArrowRight size={16} aria-hidden="true" /></ButtonLink>
+            <ArrowLink href="/contact">Start a custom piece</ArrowLink>
+          </div>
+        </div>
+      </section>
+    );
   }
 
+  const go = (step: number) => setActive((current) => (current + step + slides.length) % slides.length);
+
   return (
-    <section className="hero-slider" id="top">
-      <div className="hero-content">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <p className="eyebrow">{slide.eyebrow}</p>
-            <h1>{slide.title}</h1>
-            <p className="hero-copy">{slide.description}</p>
-
-            <div className="hero-actions">
-              <Link className="button button-dark" href={slide.primaryButtonUrl ?? "/catalog"}>
-                {slide.primaryButtonText ?? "Explore collection"}
-                <ArrowRight size={16} />
-              </Link>
-
-              <Link className="text-link" href={slide.secondaryButtonUrl ?? "/contact"}>
-                {slide.secondaryButtonText ?? "Start a custom piece"}
-                <ArrowRight size={15} />
-              </Link>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="hero-controls" aria-live="polite">
-          <span>
-            0{active + 1} <i>/ 0{slides.length || 1}</i>
-          </span>
-        </div>
-      </div>
-
-      <div className="hero-visual">
-        <div className="hero-image-frame">
+    <MotionConfig reducedMotion="user">
+      <section
+        className="hero"
+        aria-roledescription="carousel"
+        aria-label="Featured collections"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+      >
+        <div className="hero__copy">
           <AnimatePresence mode="wait">
+            <motion.div
+              key={slide.title}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+              aria-live="polite"
+            >
+              <p className="eyebrow">{slide.eyebrow}</p>
+              <h1 className="hero__title">{slide.title}</h1>
+              <p className="hero__lead">{slide.description}</p>
+              <div className="hero__actions">
+                <ButtonLink href={slide.primaryButtonUrl || "/catalog"} size="lg">
+                  {slide.primaryButtonText || "Explore collection"} <ArrowRight size={16} aria-hidden="true" />
+                </ButtonLink>
+                <ArrowLink href={slide.secondaryButtonUrl || "/contact"}>{slide.secondaryButtonText || "Start a custom piece"}</ArrowLink>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="hero__media">
+          <AnimatePresence mode="popLayout">
             <motion.img
               key={slide.image}
               src={slide.image}
               alt={slide.title}
-              initial={{ opacity: 0, scale: 1.04 }}
+              fetchPriority={active === 0 ? "high" : undefined}
+              initial={{ opacity: 0, scale: 1.03 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
             />
           </AnimatePresence>
-        </div>
 
-        <div className="image-note">
-          <span>0{active + 1}</span>
-          <span>Handcrafted for modern living</span>
+          {slides.length > 1 ? (
+            <div className="hero__controls">
+              <button type="button" className="icon-btn hero__arrow" onClick={() => go(-1)} aria-label="Previous slide"><ChevronLeft size={20} /></button>
+              <div className="hero__dots">
+                {slides.map((item, index) => (
+                  <button type="button" className="hero__dot" key={item.id ?? item.title} onClick={() => setActive(index)} aria-label={`Show slide ${index + 1} of ${slides.length}`} aria-current={index === active}>
+                    <i />
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="icon-btn hero__arrow" onClick={() => go(1)} aria-label="Next slide"><ChevronRight size={20} /></button>
+            </div>
+          ) : null}
         </div>
-
-        <div className="hero-side-controls" aria-label="Hero slide controls">
-          <button type="button" onClick={goPrevious} aria-label="Previous slide">
-            <ChevronLeft size={20} strokeWidth={1.5} />
-          </button>
-          <button type="button" onClick={goNext} aria-label="Next slide">
-            <ChevronRight size={20} strokeWidth={1.5} />
-          </button>
-        </div>
-      </div>
-    </section>
+      </section>
+    </MotionConfig>
   );
 }

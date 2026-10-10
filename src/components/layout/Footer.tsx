@@ -1,80 +1,73 @@
 "use client";
 
-import { Camera } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Wordmark } from "@/components/layout/Wordmark";
+import { useStore } from "@/components/StoreProvider";
+import { BUSINESS_EMAIL, BUSINESS_PHONE } from "@/lib/constants";
 
-type FooterSettings = {
-  websiteName: string;
-  contactEmail: string;
-  phone: string;
-  whatsapp: string;
-};
+type FooterCategory = { id: string; name: string; slug: string; active?: boolean };
 
 export function Footer() {
-  const [settings, setSettings] = useState<FooterSettings | null>(null);
+  const { settings } = useStore();
+  const [categories, setCategories] = useState<FooterCategory[]>([]);
 
   useEffect(() => {
-    async function loadSettings() {
-      try {
-        const response = await fetch("/api/settings");
-        if (!response.ok) {
-          return;
-        }
-
-        const data = (await response.json()) as FooterSettings;
-        setSettings(data);
-      } catch {
-        setSettings(null);
-      }
-    }
-
-    void loadSettings();
+    let cancelled = false;
+    fetch("/api/categories", { cache: "no-store" })
+      .then(async (response) => (response.ok ? ((await response.json()) as FooterCategory[]) : []))
+      .then((data) => {
+        if (!cancelled) setCategories(data.filter((category) => category.active !== false).slice(0, 6));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const currentSettings = settings ?? { websiteName: "", contactEmail: "", phone: "", whatsapp: "" };
+  const name = settings?.websiteName || "Saim Enterprises";
+  const phone = settings?.phone || BUSINESS_PHONE;
+  const email = settings?.contactEmail || BUSINESS_EMAIL;
+  const socials = (settings?.socialLinks ?? []).filter((link) => /^https?:\/\//.test(link.url));
 
   return (
     <footer className="site-footer">
       <div className="footer-top">
-        <div>
-          <Link className="wordmark footer-mark" href="/" aria-label="Saim Enterprises home page">
-            saim <i>enterprises</i>
-          </Link>
+        <div className="footer-brand">
+          <Wordmark />
           <p>Handcrafted décor and custom lighting made for warm, modern living.</p>
         </div>
 
-        <div>
-          <p className="footer-label">Explore</p>
-          <Link href="/">Home</Link>
-          <Link href="/catalog">Catalog</Link>
-          <Link href="/about">About us</Link>
-          <Link href="/contact">Contact</Link>
-        </div>
+        <nav className="footer-col" aria-label="Shop">
+          <p className="footer-label">Shop</p>
+          <Link href="/catalog">All pieces</Link>
+          {categories.map((category) => <Link key={category.id} href={`/catalog?category=${category.slug}`}>{category.name}</Link>)}
+          <Link href="/catalog?sale=1">On sale</Link>
+        </nav>
 
-        <div>
-          <p className="footer-label">Collections</p>
-          <Link href="/catalog">Hanging lights</Link>
-          <Link href="/catalog">Wall décor</Link>
-          <Link href="/catalog">Custom designs</Link>
-          <Link href="/catalog">Ramadan collection</Link>
-        </div>
+        <nav className="footer-col" aria-label="Help">
+          <p className="footer-label">Help</p>
+          <Link href="/shipping">Shipping</Link>
+          <Link href="/returns">Returns &amp; exchange</Link>
+          <Link href="/faq">FAQs</Link>
+          <Link href="/track">Track your order</Link>
+          <Link href="/contact">Contact us</Link>
+        </nav>
 
-        <div>
+        <div className="footer-col">
           <p className="footer-label">Contact</p>
-          {currentSettings.contactEmail ? <a href={`mailto:${currentSettings.contactEmail}`}>{currentSettings.contactEmail}</a> : null}
-          {currentSettings.phone ? <a href={`tel:${currentSettings.phone.replace(/\s+/g, "")}`}>{currentSettings.phone}</a> : null}
-          {currentSettings.whatsapp ? <a href={`https://wa.me/${currentSettings.whatsapp.replace(/\D/g, "")}`}>WhatsApp</a> : null}
-          <a href="#top">
-            <Camera size={16} /> Instagram
-          </a>
+          {email ? <a href={`mailto:${email}`}><Mail size={15} aria-hidden="true" /> {email}</a> : null}
+          {phone ? <a href={`tel:${phone.replace(/\s+/g, "")}`}><Phone size={15} aria-hidden="true" /> {phone}</a> : null}
+          {socials.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a>)}
+          {settings?.address ? <p className="footer-address">{settings.address}</p> : null}
+          {settings?.openingHours ? <p className="footer-address">{settings.openingHours}</p> : null}
         </div>
       </div>
 
       <div className="footer-bottom">
-        <span>© 2026 {currentSettings.websiteName}</span>
-        <span>Thoughtfully made in Pakistan</span>
-        <span>Privacy • Refunds • Shipping • Terms</span>
+        <span>© {new Date().getFullYear()} {name}</span>
+        <span className="footer-legal"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/about">About</Link></span>
       </div>
     </footer>
   );

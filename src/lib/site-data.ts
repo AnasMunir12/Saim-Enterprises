@@ -44,7 +44,7 @@ export type CategoryRecord = { id: string; name: string; slug: string; descripti
 export type CollectionRecord = { id: string; name: string; slug: string; description?: string; image?: string; active: boolean; featured: boolean; sortOrder: number; createdAt: string; updatedAt: string };
 export type HeroSlideRecord = { id: string; eyebrow: string; title: string; description: string; image: string; primaryButtonText: string; primaryButtonUrl: string; secondaryButtonText: string; secondaryButtonUrl: string; active: boolean; order: number; createdAt: string; updatedAt: string };
 export type HomepageSection = { id: string; key: string; title: string; subtitle: string; description: string; image?: string; buttonText?: string; buttonLink?: string; enabled: boolean; order: number };
-export type WebsiteSettings = { websiteName: string; logo: string; favicon?: string; contactEmail: string; phone: string; whatsapp: string; address: string; socialLinks: { label: string; url: string }[]; defaultSeoTitle: string; defaultSeoDescription: string };
+export type WebsiteSettings = { websiteName: string; logo: string; favicon?: string; contactEmail: string; phone: string; whatsapp: string; showWhatsappButton: boolean; address: string; openingHours: string; announcement: string; socialLinks: { label: string; url: string }[]; defaultSeoTitle: string; defaultSeoDescription: string };
 export type TestimonialRecord = { id: string; name: string; role: string; quote: string; image?: string; active: boolean };
 export type SiteData = { products: ProductRecord[]; categories: CategoryRecord[]; collections: CollectionRecord[]; heroSlides: HeroSlideRecord[]; homepageSections: HomepageSection[]; testimonials: TestimonialRecord[]; settings: WebsiteSettings };
 

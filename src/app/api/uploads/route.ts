@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const allowedTypes = new Map([
@@ -18,6 +19,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const user = await requireAdminUser();
     if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
 
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await connectDB();
     const user = await requireAdminUser();
     if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
     const { url } = (await request.json()) as { url?: string };

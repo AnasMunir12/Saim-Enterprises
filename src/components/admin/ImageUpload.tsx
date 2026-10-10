@@ -41,16 +41,15 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
     if (file) void upload(file);
   }
 
-  async function remove() {
-    const previous = value;
+  // Only detaches the picture from the form. The file stays on disk until the owner saves, so cancelling an edit never
+  // leaves a record pointing at a deleted image.
+  function remove() {
     onChange("");
-    if (!previous.startsWith("/uploads/")) return;
-    await fetch("/api/uploads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: previous }) }).catch(() => undefined);
   }
 
   return (
     <div className={className}>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="text-sm font-medium text-stone-700">{label}</span>
         <span className="text-[11px] text-stone-400">JPG, PNG, WEBP up to 5MB</span>
       </div>
@@ -59,7 +58,7 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
           <img src={value} alt={`${label} preview`} className="h-36 w-full rounded-lg object-contain" />
           <div className="mt-2 flex gap-2">
             <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700"><Replace size={14} /> Replace</button>
-            <button type="button" onClick={() => void remove()} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"><Trash2 size={14} /> Remove</button>
+            <button type="button" onClick={remove} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"><Trash2 size={14} /> Remove</button>
           </div>
         </div>
       ) : (

@@ -1,42 +1,41 @@
 import { NextResponse } from "next/server";
-import { requireAdminUser } from "@/lib/auth";
+
+import { adminRoute, ok, presentDoc, readJsonObject } from "@/lib/api";
+import { COLLECTION_SPEC } from "@/lib/catalog-input";
+import { nextOrder, uniqueSlug } from "@/lib/crud";
+import { connectDB } from "@/lib/mongodb";
 import { serializeRecords } from "@/lib/mongo-record";
-import { createId, slugify } from "@/lib/site-data";
+import { createId } from "@/lib/site-data";
+import { parseFields } from "@/lib/validate";
 import { Collection } from "@/models/Collection";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    await connectDB();
     const collections = await Collection.find().sort({ sortOrder: 1, name: 1 }).lean();
-    return NextResponse.json(serializeRecords(collections as Array<Record<string, unknown>>));
+    return NextResponse.json(serializeRecords(collections as Array<Record<string, unknown>>), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Collections read failed:", error);
     return NextResponse.json({ message: "Unable to load collections." }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
-  const user = await requireAdminUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-  }
-
-  try {
-    const user = await requireAdminUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-    const payload = (await request.json()) as { name?: string; description?: string; image?: string; active?: boolean; featured?: boolean };
-    if (!payload.name?.trim()) return NextResponse.json({ message: "Collection name is required." }, { status: 400 });
-    const count = await Collection.countDocuments();
+export const POST = adminRoute(
+  "create the collection",
+  async ({ request }) => {
+    const values = parseFields(await readJsonObject(request), COLLECTION_SPEC);
+    const slug = await uniqueSlug(Collection, values.name as string, "collection");
     const collection = await Collection.create({
-      _id: createId("collection"), name: payload.name.trim(), slug: slugify(payload.name),
-      description: payload.description ?? "", image: payload.image ?? "", active: payload.active ?? true,
-      featured: payload.featured ?? false, sortOrder: count + 1,
+      ...values,
+      _id: createId("collection"),
+      slug,
+      active: values.active ?? true,
+      featured: values.featured ?? false,
+      sortOrder: await nextOrder(Collection, "sortOrder"),
     });
-    return NextResponse.json({ ...collection.toObject(), id: String(collection._id), _id: undefined }, { status: 201 });
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === 11000) return NextResponse.json({ message: "A collection with this name already exists." }, { status: 409 });
-    console.error("Collection create failed:", error);
-    return NextResponse.json({ message: "Could not create collection." }, { status: 500 });
-  }
-}
+    return ok(presentDoc(collection), 201);
+  },
+  { duplicateMessage: "A collection with this name already exists." },
+);

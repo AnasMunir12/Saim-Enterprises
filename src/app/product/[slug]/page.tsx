@@ -1,60 +1,94 @@
-"use client";
-
-import { ArrowRight, Heart, Star } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useStore } from "@/components/StoreProvider";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/JsonLd";
 import { PageChrome } from "@/components/layout/PageChrome";
-import { ProductGrid } from "@/components/product/ProductGrid";
-import { formatPrice, type Product } from "@/lib/products";
+import { ProductView } from "@/components/product/ProductView";
+import { isSoldOut } from "@/lib/products";
+import { getLiveProductBySlug, getRelatedProducts, getSiteOrigin } from "@/lib/storefront";
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const { addToCart, wishlist, toggleWishlist } = useStore();
+// Stock changes with every confirmed order, so this page is rendered per request, never cached.
+export const dynamic = "force-dynamic";
 
-  useEffect(() => {
-    let mounted = true;
+type Props = { params: Promise<{ slug: string }> };
 
-    async function loadProduct() {
-      try {
-        const response = await fetch("/api/products");
-        if (!response.ok) return;
+const absolute = (origin: string, url: string) => {
+  if (!url || url.startsWith("data:")) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+};
 
-        const data = (await response.json()) as Array<Record<string, unknown>>;
-        const mapped = data
-          .filter((item) => item.active !== false && item.status !== "inactive")
-          .map((item) => ({
-            id: String(item.id),
-            name: String(item.name),
-            slug: String(item.slug),
-            price: Number(item.price),
-            category: String(item.categoryId ?? "Uncategorized"),
-            image: String(item.image ?? ""),
-            detail: String(item.description ?? item.shortDescription ?? ""),
-            rating: 0,
-            reviews: 0,
-            featured: Boolean(item.featured),
-          }));
-        const current = mapped.find((item) => item.slug === params.slug) ?? null;
+const clip = (value: string, max: number) => {
+  const flat = value.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
+};
 
-        if (mounted) {
-          setProduct(current);
-          setRelatedProducts(mapped.filter((item) => item.slug !== params.slug).slice(0, 4));
-        }
-      } catch {
-        if (mounted) setProduct(null);
-      }
-    }
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const found = await getLiveProductBySlug(slug);
+  if (!found) return { title: "Product not found | Saim Enterprises", robots: { index: false } };
 
-    void loadProduct();
-    return () => {
-      mounted = false;
-    };
-  }, [params.slug]);
+  const { product, seoTitle, seoDescription } = found;
+  const origin = await getSiteOrigin();
+  const title = `${seoTitle || product.name} | Saim Enterprises`;
+  const description = clip(seoDescription || product.detail || product.description || `${product.name} by Saim Enterprises, handcrafted in Lahore.`, 160);
+  const image = absolute(origin, product.image);
 
-  if (!product) {
-    return <PageChrome><section className="section-pad"><p className="empty-state">Product not found.</p></section></PageChrome>;
-  }
+  return {
+    title,
+    description,
+    alternates: { canonical: `${origin}/product/${product.slug}` },
+    openGraph: { title, description, url: `${origin}/product/${product.slug}`, siteName: "Saim Enterprises", type: "website", images: image ? [{ url: image, alt: product.name }] : undefined },
+    twitter: { card: image ? "summary_large_image" : "summary", title, description, images: image ? [image] : undefined },
+  };
+}
 
-  return <PageChrome><section className="product-detail"><div className="detail-image"><img src={product.image} alt={product.name} /></div><div className="detail-copy"><p className="eyebrow">{product.category} / {product.badge || "Handcrafted"}</p><h1>{product.name}</h1><div className="detail-rating"><Star size={14} fill="currentColor" /> {product.rating} ({product.reviews} reviews)</div><p className="detail-price">{formatPrice(product.price)}</p><p className="detail-description">{product.detail}</p><div className="detail-actions"><button className="button button-dark" onClick={() => addToCart(product)}>Add to bag <ArrowRight size={16} /></button><button className={`detail-wishlist ${wishlist.includes(product.id) ? "wished" : ""}`} onClick={() => toggleWishlist(product.id)} aria-label="Toggle wishlist"><Heart fill={wishlist.includes(product.id) ? "currentColor" : "none"} /></button></div><div className="detail-notes"><p>Made to order in our Lahore studio.</p><p>Free delivery on orders over PKR 5,000.</p><p>Message us on WhatsApp for custom sizing or finishes.</p></div></div></section><section className="section-pad"><div className="section-row"><div><p className="eyebrow">You may also like</p><h2>More to keep.</h2></div></div><ProductGrid products={relatedProducts} /></section></PageChrome>;
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+  const found = await getLiveProductBySlug(slug);
+  if (!found) notFound();
+
+  const { product } = found;
+  const [related, origin] = await Promise.all([getRelatedProducts(product), getSiteOrigin()]);
+  const url = `${origin}/product/${product.slug}`;
+  const images = (product.images?.length ? product.images : [product.image]).map((image) => absolute(origin, image)).filter((image): image is string => Boolean(image));
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      description: clip(product.description || product.detail || product.name, 500),
+      image: images.length ? images : undefined,
+      sku: product.sku || undefined,
+      category: product.category,
+      brand: { "@type": "Brand", name: "Saim Enterprises" },
+      material: product.material || undefined,
+      color: product.color || undefined,
+      offers: {
+        "@type": "Offer",
+        url,
+        priceCurrency: "PKR",
+        price: product.price,
+        itemCondition: "https://schema.org/NewCondition",
+        availability: isSoldOut(product) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: origin },
+        { "@type": "ListItem", position: 2, name: "Catalog", item: `${origin}/catalog` },
+        ...(product.categorySlug ? [{ "@type": "ListItem", position: 3, name: product.category, item: `${origin}/catalog?category=${product.categorySlug}` }] : []),
+        { "@type": "ListItem", position: product.categorySlug ? 4 : 3, name: product.name, item: url },
+      ],
+    },
+  ];
+
+  return (
+    <PageChrome>
+      {jsonLd.map((entry, index) => <JsonLd key={index} data={entry} />)}
+      <ProductView product={product} related={related.products} relatedSameCategory={related.sameCategory} />
+    </PageChrome>
+  );
 }

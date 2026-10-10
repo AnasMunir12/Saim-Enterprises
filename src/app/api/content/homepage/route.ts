@@ -1,42 +1,32 @@
 import { NextResponse } from "next/server";
-import { requireAdminUser } from "@/lib/auth";
-import { serializeRecords } from "@/lib/mongo-record";
+
+import { adminRoute, ApiError, ok, readJsonObject } from "@/lib/api";
+import { SECTION_SPEC, newCustomKey, readResolvedSection, readResolvedSections } from "@/lib/homepage-api";
+import { nextOrder } from "@/lib/crud";
+import { sectionId } from "@/lib/homepage-sections";
+import { connectDB } from "@/lib/mongodb";
+import { parseFields } from "@/lib/validate";
 import { HomepageSection } from "@/models/HomepageSection";
 
 export const dynamic = "force-dynamic";
 
+// Public: the merged homepage layout (built-in sections plus any content blocks the owner added).
 export async function GET() {
   try {
-    const sections = await HomepageSection.find().sort({ order: 1 }).lean();
-    return NextResponse.json(serializeRecords(sections as Array<Record<string, unknown>>));
+    await connectDB();
+    return NextResponse.json(await readResolvedSections(), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Homepage sections read failed:", error);
     return NextResponse.json({ message: "Unable to load homepage sections." }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request) {
-  try {
-    const user = await requireAdminUser();
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-    }
+// Adds a custom content block at the end of the page.
+export const POST = adminRoute("create the homepage block", async ({ request }) => {
+  const values = parseFields(await readJsonObject(request), SECTION_SPEC);
+  if (!values.title) throw new ApiError("Heading is required.");
 
-    const payload = (await request.json()) as Record<string, unknown>;
-    if (typeof payload.id !== "string") return NextResponse.json({ message: "Section id is required." }, { status: 400 });
-    const section = await HomepageSection.findById(payload.id);
-    if (!section) {
-      return NextResponse.json({ message: "Homepage section not found." }, { status: 404 });
-    }
-
-    for (const field of ["key", "title", "subtitle", "description", "image", "buttonText", "buttonLink", "enabled", "order"]) {
-      if (field in payload) section.set(field, payload[field]);
-    }
-    await section.save();
-
-    return NextResponse.json({ ...section.toObject(), id: String(section._id), _id: undefined });
-  } catch (error) {
-    console.error("Homepage section update failed:", error);
-    return NextResponse.json({ message: "Could not update homepage section." }, { status: 500 });
-  }
-}
+  const key = newCustomKey();
+  await HomepageSection.create({ ...values, _id: sectionId(key), key, enabled: values.enabled ?? true, order: Math.max(await nextOrder(HomepageSection, "order"), 1000) });
+  return ok(await readResolvedSection(key), 201);
+});

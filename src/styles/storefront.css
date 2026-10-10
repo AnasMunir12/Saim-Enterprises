@@ -1,0 +1,12 @@
+/* Storefront stylesheet entry. Order matters: tokens (loaded with globals.css), base, shared UI, chrome,
+   then page-level styles. */
+@import "./base.css";
+@import "./ui.css";
+@import "./layout.css";
+@import "./home.css";
+@import "./product.css";
+@import "./catalog.css";
+@import "./cart.css";
+@import "./auth.css";
+@import "./pages.css";
+@import "./account.css";

@@ -1,40 +1,27 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import Link from "next/link";
-import { WHATSAPP_LINK } from "@/lib/constants";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { ButtonLink } from "@/components/ui/Button";
+import { NO_COPY, type HomeSectionCopy } from "@/lib/homepage-sections";
 
-export function CustomDesignSection() {
+// Dark banner inviting visitors to start a custom piece. Questions go through the contact form.
+export function CustomDesignSection({ copy = NO_COPY }: { copy?: HomeSectionCopy }) {
   return (
-    <section className="custom-section" id="custom">
-      <div className="custom-copy">
-        <p className="eyebrow">Made for you</p>
-        <h2>
-          Your idea,
-          <br />
-          <em>made tangible.</em>
-        </h2>
-        <p>
-          From custom laser-cut wood pieces to CNC-crafted décor and engraved accents, we design one-of-a-kind pieces
-          that reflect your taste, story, and space.
-        </p>
-        <div className="custom-actions">
-          <Link className="button button-light" href="/contact">
-            Start your custom piece
-            <ArrowRight size={16} />
-          </Link>
-          <a className="text-link light-link" href={WHATSAPP_LINK}>
-            Talk to the studio
-            <ArrowRight size={16} />
-          </a>
+    <section className="custom-banner" id="custom">
+      <div className="custom-banner__copy">
+        <p className="eyebrow">{copy.subtitle || "Made for you"}</p>
+        {copy.title ? <h2>{copy.title}</h2> : <h2>Your idea, <em>made tangible.</em></h2>}
+        <p>{copy.description || "From custom laser-cut wood pieces to CNC-crafted décor and engraved accents, we design one-of-a-kind pieces that reflect your taste, story and space."}</p>
+        <div className="custom-banner__actions">
+          <ButtonLink href={copy.buttonLink || "/contact"} variant="on-dark" size="lg">
+            {copy.buttonText || "Start your custom piece"} <ArrowRight size={16} aria-hidden="true" />
+          </ButtonLink>
+          <ArrowLink href="/faq" light>How custom orders work</ArrowLink>
         </div>
       </div>
 
-      <div className="custom-stamp" aria-label="Custom design service">
+      <div className="custom-banner__stamp" aria-hidden="true">
         <Sparkles size={22} />
-        <span>
-          Made to order
-          <br />
-          with care
-        </span>
+        <span>Made to order<br />with care</span>
       </div>
     </section>
   );

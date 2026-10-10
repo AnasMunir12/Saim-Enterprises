@@ -8,16 +8,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    let body: { email?: string; password?: string };
+    let body: { email?: unknown; password?: unknown };
 
     try {
-      body = (await request.json()) as { email?: string; password?: string };
+      body = (await request.json()) as { email?: unknown; password?: unknown };
     } catch {
       return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
     }
 
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password ?? "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body.password === "string" ? body.password : "";
 
     if (!email || !password) {
       return NextResponse.json({ message: "Email and password are required." }, { status: 400 });
@@ -26,15 +26,23 @@ export async function POST(request: Request) {
     await connectDB();
     const user = await User.findOne({ email }).lean();
 
+    // verifyPassword is safe for accounts without a password hash (Google-only).
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
     }
 
-    await setSessionCookie(String(user._id));
+    if (user.role !== "admin") {
+      return NextResponse.json(
+        { message: "This account is not an admin. Please use the customer login." },
+        { status: 403 },
+      );
+    }
+
+    await setSessionCookie(String(user._id), "admin");
 
     return NextResponse.json({
       message: "Login successful.",
-      user: { id: String(user._id), name: user.name, email: user.email },
+      user: { id: String(user._id), name: user.name, email: user.email, role: "admin" },
     });
   } catch (error) {
     console.error("Admin login failed:", error);

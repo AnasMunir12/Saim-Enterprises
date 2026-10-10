@@ -1,14 +1,6 @@
-"use client";
+import { notFound } from "next/navigation";
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-export default function SignupPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/signup");
-  }, [router]);
-
-  return null;
+// Public admin signup does not exist. Customers register at /signup.
+export default function AdminSignupDisabledPage() {
+  notFound();
 }

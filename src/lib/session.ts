@@ -45,10 +45,36 @@ async function signEncodedPayload(encoded: string): Promise<string> {
     .join("");
 }
 
-export async function createSessionToken(userId: string): Promise<string> {
+export type SessionRole = "admin" | "customer";
+
+export interface SessionPayload {
+  userId: string;
+  role: SessionRole;
+  exp: number;
+  // Issued-at (ms). Legacy tokens without the claim are treated as issued at exp - SESSION_MAX_AGE.
+  iat: number;
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  let diff = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
+  }
+
+  return diff === 0;
+}
+
+export async function createSessionToken(userId: string, role: SessionRole = "customer"): Promise<string> {
+  const now = Date.now();
   const payload = {
     sub: userId,
-    exp: Date.now() + SESSION_MAX_AGE * 1000,
+    role: role === "admin" ? "admin" : "customer",
+    iat: now,
+    exp: now + SESSION_MAX_AGE * 1000,
   };
 
   const encoded = toBase64Url(JSON.stringify(payload));
@@ -57,7 +83,8 @@ export async function createSessionToken(userId: string): Promise<string> {
   return `${encoded}.${signature}`;
 }
 
-export async function verifySessionToken(token?: string): Promise<{ userId: string; exp: number } | null> {
+// Tokens without a valid role claim (legacy tokens) are rejected, never treated as admin.
+export async function verifySessionToken(token?: string): Promise<SessionPayload | null> {
   if (!token) {
     return null;
   }
@@ -69,17 +96,23 @@ export async function verifySessionToken(token?: string): Promise<{ userId: stri
 
   const expected = await signEncodedPayload(encoded);
 
-  if (signature !== expected) {
+  if (!constantTimeEqual(signature, expected)) {
     return null;
   }
 
   try {
     const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(encoded))) as {
       sub?: string;
+      role?: string;
       exp?: number;
+      iat?: number;
     };
 
     if (!payload.sub || !payload.exp) {
+      return null;
+    }
+
+    if (payload.role !== "admin" && payload.role !== "customer") {
       return null;
     }
 
@@ -87,7 +120,9 @@ export async function verifySessionToken(token?: string): Promise<{ userId: stri
       return null;
     }
 
-    return { userId: payload.sub, exp: payload.exp };
+    const iat = typeof payload.iat === "number" ? payload.iat : payload.exp - SESSION_MAX_AGE * 1000;
+
+    return { userId: payload.sub, role: payload.role, exp: payload.exp, iat };
   } catch {
     return null;
   }

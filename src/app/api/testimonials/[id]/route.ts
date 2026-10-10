@@ -1,41 +1,24 @@
-import { NextResponse } from "next/server";
-
-import { requireAdminUser } from "@/lib/auth";
+import { adminRoute, ApiError, ok, presentDoc, readJsonObject } from "@/lib/api";
+import { TESTIMONIAL_SPEC } from "@/lib/testimonial-input";
+import { parseFields } from "@/lib/validate";
 import { Testimonial } from "@/models/Testimonial";
 
 export const dynamic = "force-dynamic";
 
-type Context = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function PUT(request: Request, { params }: Context) {
-  try {
-    const user = await requireAdminUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-    const { id } = await params;
-    const payload = (await request.json()) as Record<string, unknown>;
-    const testimonial = await Testimonial.findById(id);
-    if (!testimonial) return NextResponse.json({ message: "Testimonial not found." }, { status: 404 });
-    for (const field of ["name", "role", "quote", "image", "active"]) {
-      if (field in payload) testimonial.set(field, payload[field]);
-    }
-    await testimonial.save();
-    return NextResponse.json({ ...testimonial.toObject(), id: String(testimonial._id), _id: undefined });
-  } catch (error) {
-    console.error("Testimonial update failed:", error);
-    return NextResponse.json({ message: "Could not update testimonial." }, { status: 500 });
-  }
-}
+export const PUT = adminRoute<Params>("update the testimonial", async ({ request, params }) => {
+  const body = await readJsonObject(request);
+  const values = parseFields(body, TESTIMONIAL_SPEC, { partial: true });
+  // `rating: null` removes the stars from this testimonial.
+  const update = body.rating === null ? { $set: values, $unset: { rating: "" } } : { $set: values };
+  const testimonial = await Testimonial.findByIdAndUpdate(params.id, update, { returnDocument: "after", runValidators: true });
+  if (!testimonial) throw new ApiError("Testimonial not found.", 404);
+  return ok(presentDoc(testimonial));
+});
 
-export async function DELETE(_request: Request, { params }: Context) {
-  try {
-    const user = await requireAdminUser();
-    if (!user) return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-    const { id } = await params;
-    const deleted = await Testimonial.findByIdAndDelete(id);
-    if (!deleted) return NextResponse.json({ message: "Testimonial not found." }, { status: 404 });
-    return NextResponse.json({ message: "Testimonial deleted." });
-  } catch (error) {
-    console.error("Testimonial delete failed:", error);
-    return NextResponse.json({ message: "Could not delete testimonial." }, { status: 500 });
-  }
-}
+export const DELETE = adminRoute<Params>("delete the testimonial", async ({ params }) => {
+  const deleted = await Testimonial.findByIdAndDelete(params.id);
+  if (!deleted) throw new ApiError("Testimonial not found.", 404);
+  return ok({ message: "Testimonial deleted." });
+});

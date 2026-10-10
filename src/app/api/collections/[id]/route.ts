@@ -1,55 +1,31 @@
-import { NextResponse } from "next/server";
-import { requireAdminUser } from "@/lib/auth";
+import { adminRoute, ApiError, ok, presentDoc, readJsonObject } from "@/lib/api";
+import { COLLECTION_SPEC } from "@/lib/catalog-input";
+import { uniqueSlug } from "@/lib/crud";
+import { parseFields } from "@/lib/validate";
 import { Collection } from "@/models/Collection";
-import { slugify } from "@/lib/site-data";
+import { Product } from "@/models/Product";
 
 export const dynamic = "force-dynamic";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const user = await requireAdminUser();
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-    }
+type Params = { id: string };
 
-    const { id } = await params;
-    const payload = (await request.json()) as Record<string, unknown>;
-    const collection = await Collection.findById(id);
-    if (!collection) {
-      return NextResponse.json({ message: "Collection not found." }, { status: 404 });
-    }
+export const PUT = adminRoute<Params>(
+  "update the collection",
+  async ({ request, params }) => {
+    const values = parseFields(await readJsonObject(request), COLLECTION_SPEC, { partial: true });
+    const update: Record<string, unknown> = { ...values };
+    if (typeof values.name === "string") update.slug = await uniqueSlug(Collection, values.name, "collection", params.id);
+    const collection = await Collection.findByIdAndUpdate(params.id, { $set: update }, { returnDocument: "after", runValidators: true });
+    if (!collection) throw new ApiError("Collection not found.", 404);
+    return ok(presentDoc(collection));
+  },
+  { duplicateMessage: "A collection with this name already exists." },
+);
 
-    if (typeof payload.name === "string") {
-      collection.name = payload.name.trim();
-      collection.slug = slugify(payload.name);
-    }
-    if ("description" in payload) collection.description = String(payload.description ?? "");
-    if ("image" in payload) collection.image = String(payload.image ?? "");
-    if (typeof payload.active === "boolean") collection.active = payload.active;
-    if (typeof payload.featured === "boolean") collection.featured = payload.featured;
-    await collection.save();
-
-    return NextResponse.json({ ...collection.toObject(), id: String(collection._id), _id: undefined });
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === 11000) return NextResponse.json({ message: "A collection with this name already exists." }, { status: 409 });
-    console.error("Collection update failed:", error);
-    return NextResponse.json({ message: "Could not update collection." }, { status: 500 });
-  }
-}
-
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireAdminUser();
-  if (!user) {
-    return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
-  }
-
-  try {
-    const { id } = await params;
-    const deleted = await Collection.findByIdAndDelete(id);
-    if (!deleted) return NextResponse.json({ message: "Collection not found." }, { status: 404 });
-    return NextResponse.json({ message: "Collection deleted." });
-  } catch (error) {
-    console.error("Collection delete failed:", error);
-    return NextResponse.json({ message: "Could not delete collection." }, { status: 500 });
-  }
-}
+// Products in the collection stay in the shop; they just no longer belong to a collection.
+export const DELETE = adminRoute<Params>("delete the collection", async ({ params }) => {
+  const deleted = await Collection.findByIdAndDelete(params.id);
+  if (!deleted) throw new ApiError("Collection not found.", 404);
+  await Product.updateMany({ collectionId: params.id }, { $unset: { collectionId: "" } });
+  return ok({ message: "Collection deleted." });
+});

@@ -1,0 +1,78 @@
+/* Design tokens for the customer storefront. Every colour, space, radius and type size used by the
+   storefront styles comes from here, so a brand change is a one-file edit. */
+:root {
+    /* Colour: surfaces and text */
+    --ink: #1f1d1b;
+    --ink-soft: #3f3b36;
+    --muted: #5f5c55;
+    --paper: #f7f3ee;
+    --canvas: #f0e7dd;
+    --sand: #e6ddd2;
+    --surface: #fff;
+    --line: #dfd5ca;
+    --line-strong: #c4b6a6;
+
+    /* Colour: brand and status. `accent` is for fills behind white text, `accent-ink` for text on paper
+       (both clear WCAG AA contrast). */
+    --accent: #a65a3d;
+    --accent-strong: #8f4a30;
+    --accent-ink: #944c32;
+    --olive: #535a48;
+    --olive-deep: #383d35;
+    --gold: #be9969;
+    --success: #3d6b35;
+    --success-bg: #e6f0e2;
+    --warning: #7a5a14;
+    --warning-bg: #f4e6c8;
+    --danger: #8a2f1c;
+    --danger-bg: #f9e6e0;
+    --danger-line: #e3b8a8;
+    --overlay: rgba(30, 32, 27, 0.45);
+    --shadow: rgba(28, 22, 17, 0.14);
+
+    /* Spacing scale (4px base) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 96px;
+
+    /* Page rhythm */
+    --container: 1320px;
+    --gutter: clamp(16px, 5vw, 72px);
+    --pad-x: max(var(--gutter), calc((100% - var(--container)) / 2));
+    --section-y: clamp(56px, 8vw, 104px);
+    --header-h: 72px;
+
+    /* Shape */
+    --radius-sm: 2px;
+    --radius-md: 6px;
+    --radius-pill: 999px;
+
+    /* Type */
+    --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+    --font-sans: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --text-xs: 0.75rem;
+    --text-sm: 0.8125rem;
+    --text-base: 0.9375rem;
+    --text-md: 1.0625rem;
+    --track-caps: 0.14em;
+
+    /* Interaction */
+    --tap: 44px;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --dur-fast: 0.15s;
+    --dur: 0.25s;
+
+    /* Stacking */
+    --z-sticky: 30;
+    --z-float: 32;
+    --z-buybar: 35;
+    --z-drawer: 60;
+    --z-toast: 90;
+    --z-skip: 100;
+}

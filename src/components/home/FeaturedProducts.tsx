@@ -1,90 +1,39 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ProductGrid } from "@/components/product/ProductGrid";
+import { ProductGrid, ProductGridSkeleton } from "@/components/product/ProductGrid";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { useCatalog } from "@/components/useCatalog";
+import { NO_COPY, type HomeSectionCopy } from "@/lib/homepage-sections";
+import { soldOutLast } from "@/lib/products";
 
-type ProductItem = {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  category: string;
-  image: string;
-  detail: string;
-  rating: number;
-  reviews: number;
-  badge?: string;
-  featured?: boolean;
-  bestseller?: boolean;
-};
+export function FeaturedProducts({ copy = NO_COPY }: { copy?: HomeSectionCopy }) {
+  const { products, status, reload } = useCatalog();
+  const featured = soldOutLast(products.filter((product) => product.featured)).slice(0, 4);
+  // Until something is marked as featured, show the newest pieces instead of an empty block.
+  const fallback = featured.length === 0;
+  const shown = fallback ? soldOutLast(products).slice(0, 4) : featured;
 
-export function FeaturedProducts() {
-  const [products, setProducts] = useState<ProductItem[]>([]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadProducts() {
-      try {
-        const response = await fetch("/api/products");
-        if (!response.ok) {
-          return;
-        }
-
-        const data = (await response.json()) as Array<{
-          id: string;
-          name: string;
-          slug: string;
-          price: number;
-          categoryId?: string;
-          image?: string;
-          shortDescription?: string;
-          description?: string;
-          featured?: boolean;
-          active?: boolean;
-        }>;
-
-        const mapped = data
-          .filter((item) => item.featured && item.active !== false)
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            slug: item.slug,
-            price: item.price,
-            category: item.categoryId ?? "Featured",
-            image: item.image ?? "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=900&q=85",
-            detail: item.shortDescription ?? item.description ?? "",
-            rating: 4.9,
-            reviews: 12,
-            featured: true,
-          }));
-
-        if (mounted) {
-          setProducts(mapped.slice(0, 4));
-        }
-      } catch {
-        if (mounted) setProducts([]);
-      }
-    }
-
-    void loadProducts();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  // With nothing to show and nothing loading, the section disappears rather than advertising emptiness.
+  if (status === "ready" && shown.length === 0) return null;
 
   return (
-    <section className="section-pad featured-section" id="shop">
-      <div className="section-row">
-        <SectionHeading eyebrow="The edit" title="Pieces to keep." />
-        <Link className="text-link" href="/catalog">
-          View all pieces <span>↗</span>
-        </Link>
-      </div>
-      {products.length ? <ProductGrid products={products} /> : <p className="empty-state">No featured products found.</p>}
+    <section className="section section--tint" id="shop" aria-labelledby="featured-heading">
+      <SectionHeading
+        id="featured-heading"
+        eyebrow={copy.subtitle || (fallback && status === "ready" ? "New arrivals" : "The edit")}
+        title={copy.title || (fallback && status === "ready" ? "Just made." : "Pieces to keep.")}
+        action={<ArrowLink href={copy.buttonLink || "/catalog"} icon="up-right">{copy.buttonText || "View all pieces"}</ArrowLink>}
+      />
+      {status === "loading" ? (
+        <ProductGridSkeleton count={4} />
+      ) : status === "error" ? (
+        <EmptyState role="alert" title="We could not load the pieces just now." actions={<Button onClick={reload}>Try again</Button>} />
+      ) : (
+        <ProductGrid products={shown} />
+      )}
     </section>
   );
 }

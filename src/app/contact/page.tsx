@@ -1,29 +1,21 @@
-"use client";
-
-import { ArrowRight, Mail, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
+import type { Metadata } from "next";
+import { ContactView } from "@/components/contact/ContactView";
 import { PageChrome } from "@/components/layout/PageChrome";
-import { Button } from "@/components/ui/Button";
+import { PageHero } from "@/components/ui/PageHero";
 
-type ContactSettings = {
-  contactEmail: string;
-  phone: string;
-  whatsapp: string;
+export const metadata: Metadata = {
+  title: "Contact | Saim Enterprises",
+  description: "Send the Saim Enterprises studio in Lahore a question about custom laser-cut, CNC, engraving and décor pieces. We reply by email.",
 };
 
-export default function ContactPage() {
-  const [settings, setSettings] = useState<ContactSettings | null>(null);
+export default async function ContactPage({ searchParams }: { searchParams: Promise<{ subject?: string | string[] }> }) {
+  const { subject } = await searchParams;
+  const initialSubject = (Array.isArray(subject) ? subject[0] : subject)?.slice(0, 150) ?? "";
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then(async (response) => (response.ok ? (await response.json()) as ContactSettings : null))
-      .then((data) => setSettings(data))
-      .catch(() => setSettings(null));
-  }, []);
-
-  const phone = settings?.phone ?? "";
-  const email = settings?.contactEmail ?? "";
-  const whatsapp = settings?.whatsapp?.replace(/\D/g, "") ?? "";
-
-  return <PageChrome><section className="page-hero"><p className="eyebrow">Come say hello</p><h1>Let&apos;s make<br /><em>something meaningful.</em></h1></section><section className="info-page"><div><p className="eyebrow">The studio</p><h2>Have an idea?<br />We&apos;d love to hear it.</h2><p>For custom laser-cut, CNC, engraving and décor enquiries, send us a note or reach out directly.</p><div className="contact-details"><p><Phone size={16} /> {phone || "Loading contact details..."}</p><p><Mail size={16} /> {email}</p>{whatsapp ? <a href={`https://wa.me/${whatsapp}`}>WhatsApp the studio <ArrowRight size={16} /></a> : null}</div></div><form className="contact-form"><input placeholder="Your name" aria-label="Your name" required /><input type="email" placeholder="Email address" aria-label="Email address" required /><input placeholder="What can we make for you?" aria-label="What can we make for you" required /><textarea placeholder="Tell us a little about your idea" aria-label="Tell us about your idea" /><Button type="submit">Send enquiry <ArrowRight size={16} /></Button></form></section></PageChrome>;
+  return (
+    <PageChrome>
+      <PageHero eyebrow="Come say hello" title={<>Let&apos;s make <em>something meaningful.</em></>} lead="Questions about a piece, a custom idea or an order? Send us a note and we will reply by email." />
+      <ContactView initialSubject={initialSubject} />
+    </PageChrome>
+  );
 }

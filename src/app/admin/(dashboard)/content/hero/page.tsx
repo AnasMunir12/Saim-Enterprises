@@ -1,105 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { CrudPage, standardDelete } from "@/components/admin/CrudPage";
+import { CheckboxField, FieldRow, TextAreaField, TextField } from "@/components/admin/FormFields";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import type { HeroSlideRecord } from "@/lib/site-data";
+
+type Slide = {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  image: string;
+  primaryButtonText?: string;
+  primaryButtonUrl?: string;
+  secondaryButtonText?: string;
+  secondaryButtonUrl?: string;
+  active: boolean;
+};
+type Form = Omit<Slide, "id">;
+
+const emptyForm: Form = {
+  eyebrow: "",
+  title: "",
+  description: "",
+  image: "",
+  primaryButtonText: "Explore collection",
+  primaryButtonUrl: "/catalog",
+  secondaryButtonText: "Learn more",
+  secondaryButtonUrl: "/contact",
+  active: true,
+};
 
 export default function HeroContentPage() {
-  const [slides, setSlides] = useState<HeroSlideRecord[]>([]);
-  const [form, setForm] = useState({
-    eyebrow: "",
-    title: "",
-    description: "",
-    image: "",
-    primaryButtonText: "",
-    primaryButtonUrl: "/catalog",
-    secondaryButtonText: "",
-    secondaryButtonUrl: "/contact",
-    active: true,
-  });
-
-  async function loadSlides() {
-    const response = await fetch("/api/content/hero");
-    const data = (await response.json()) as HeroSlideRecord[];
-    setSlides(data);
-  }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadSlides();
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  async function handleSave() {
-    const response = await fetch("/api/content/hero", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    if (response.ok) {
-      setForm({
-        eyebrow: "",
-        title: "",
-        description: "",
-        image: "",
-        primaryButtonText: "",
-        primaryButtonUrl: "/catalog",
-        secondaryButtonText: "",
-        secondaryButtonUrl: "/contact",
-        active: true,
-      });
-      await loadSlides();
-    }
-  }
-
-  async function handleDelete(id: string) {
-    const response = await fetch(`/api/content/hero?id=${id}`, { method: "DELETE" });
-    if (response.ok) {
-      await loadSlides();
-    }
-  }
-
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.9fr_1.4fr]">
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold tracking-tight">Hero slider editor</h2>
-        <div className="mt-4 space-y-4">
-          <input value={form.eyebrow} onChange={(event) => setForm({ ...form, eyebrow: event.target.value })} placeholder="Eyebrow" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-          <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Title" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-          <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Description" className="min-h-28 w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-          <ImageUpload value={form.image} onChange={(image) => setForm({ ...form, image })} label="Hero image" />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input value={form.primaryButtonText} onChange={(event) => setForm({ ...form, primaryButtonText: event.target.value })} placeholder="Primary button text" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-            <input value={form.primaryButtonUrl} onChange={(event) => setForm({ ...form, primaryButtonUrl: event.target.value })} placeholder="Primary URL" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input value={form.secondaryButtonText} onChange={(event) => setForm({ ...form, secondaryButtonText: event.target.value })} placeholder="Secondary button text" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-            <input value={form.secondaryButtonUrl} onChange={(event) => setForm({ ...form, secondaryButtonUrl: event.target.value })} placeholder="Secondary URL" className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2.5" />
-          </div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} /> Active</label>
-          <button type="button" onClick={handleSave} className="rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white">Add slide</button>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-        <div className="space-y-3">
-          {slides.map((slide) => (
-            <div key={slide.id} className="flex items-center justify-between gap-4 rounded-xl border border-stone-200 p-3">
-              <div className="flex items-center gap-3">
-                <img src={slide.image} alt={slide.title} className="h-14 w-20 rounded-lg object-cover" />
-                <div>
-                  <div className="font-medium">{slide.title}</div>
-                  <div className="text-sm text-stone-500">{slide.eyebrow}</div>
-                </div>
-              </div>
-              <button type="button" onClick={() => handleDelete(slide.id)} className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">Delete</button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <CrudPage<Slide, Form>
+      singular="slide"
+      plural="slides"
+      endpoint="/api/content/hero"
+      emptyForm={emptyForm}
+      toForm={(slide) => ({ ...emptyForm, ...slide })}
+      validate={(form) => (!form.title.trim() ? "Slide title is required." : !form.image ? "Upload a hero image." : null)}
+      reorderable
+      activeKey="active"
+      listTitle="Hero slides"
+      listIntro="The big banner at the top of the homepage. Active slides play in this order; with none, a plain welcome banner is shown."
+      emptyText="Add a slide to control the large banner at the top of the homepage."
+      deleteConfig={(slide) => standardDelete("slide", slide.title, "It disappears from the homepage.")}
+      renderForm={({ form, set }) => (
+        <>
+          <TextField label="Eyebrow" value={form.eyebrow ?? ""} onChange={(eyebrow) => set({ eyebrow })} maxLength={80} hint="Small line above the title." />
+          <TextField label="Title" required value={form.title} onChange={(title) => set({ title })} maxLength={150} />
+          <TextAreaField label="Description" value={form.description ?? ""} onChange={(description) => set({ description })} rows={3} maxLength={400} />
+          <ImageUpload value={form.image} onChange={(image) => set({ image })} label="Hero image *" />
+          <FieldRow>
+            <TextField label="Primary button text" value={form.primaryButtonText ?? ""} onChange={(primaryButtonText) => set({ primaryButtonText })} maxLength={40} />
+            <TextField label="Primary button link" value={form.primaryButtonUrl ?? ""} onChange={(primaryButtonUrl) => set({ primaryButtonUrl })} hint="For example /catalog" />
+          </FieldRow>
+          <FieldRow>
+            <TextField label="Secondary link text" value={form.secondaryButtonText ?? ""} onChange={(secondaryButtonText) => set({ secondaryButtonText })} maxLength={40} />
+            <TextField label="Secondary link" value={form.secondaryButtonUrl ?? ""} onChange={(secondaryButtonUrl) => set({ secondaryButtonUrl })} hint="For example /contact" />
+          </FieldRow>
+          <CheckboxField label="Show on the homepage" checked={form.active} onChange={(active) => set({ active })} />
+        </>
+      )}
+      renderRow={(slide) => ({ image: slide.image, title: slide.title, subtitle: slide.eyebrow })}
+    />
   );
 }

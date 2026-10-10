@@ -1,0 +1,143 @@
+/* Storefront base: element defaults scoped to .site-shell so the admin area keeps its own look. */
+.site-shell {
+    background: var(--paper);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    min-height: 100vh;
+    /* `clip` (not `hidden`) so the sticky header keeps working. */
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+}
+
+.site-shell > main {
+    flex: 1;
+}
+
+:where(.site-shell) a {
+    color: inherit;
+    text-decoration: none;
+}
+
+:where(.site-shell) img {
+    display: block;
+    max-width: 100%;
+}
+
+:where(.site-shell) p {
+    margin: 0;
+}
+
+:where(.site-shell) h1,
+:where(.site-shell) h2,
+:where(.site-shell) h3,
+:where(.site-shell) h4 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+    margin: 0;
+    text-wrap: balance;
+}
+
+:where(.site-shell) h1 em,
+:where(.site-shell) h2 em {
+    color: var(--accent-ink);
+    font-style: italic;
+}
+
+:where(.site-shell) ul,
+:where(.site-shell) ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+:where(.site-shell) button {
+    cursor: pointer;
+    font: inherit;
+}
+
+:where(.site-shell) button:disabled,
+:where(.site-shell) [aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
+:where(.site-shell) input,
+:where(.site-shell) select,
+:where(.site-shell) textarea {
+    font: inherit;
+}
+
+:where(.site-shell) :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+:where(.site-shell) main:focus {
+    outline: none;
+}
+
+:where(.site-shell) ::selection {
+    background: var(--canvas);
+}
+
+.sr-only {
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+.skip-link {
+    background: var(--ink);
+    color: #fff;
+    font-size: var(--text-sm);
+    left: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    position: fixed;
+    top: -80px;
+    z-index: var(--z-skip);
+}
+
+.skip-link:focus {
+    top: var(--space-3);
+}
+
+/* Page rhythm helpers */
+.section {
+    padding: var(--section-y) var(--pad-x);
+}
+
+.section--tint {
+    background: var(--canvas);
+}
+
+/* Two untinted sections in a row share one gap instead of doubling it. */
+.section:not(.section--tint) + .section:not(.section--tint) {
+    padding-top: 0;
+}
+
+.section--flush-top {
+    padding-top: 0;
+}
+
+/* Visitors who ask for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+    :where(.site-shell) *,
+    :where(.site-shell) *::before,
+    :where(.site-shell) *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

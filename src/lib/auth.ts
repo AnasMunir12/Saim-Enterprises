@@ -2,20 +2,55 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 
 import { connectDB } from "@/lib/mongodb";
-import { AUTH_COOKIE_NAME, SESSION_MAX_AGE, createSessionToken, verifySessionToken } from "@/lib/session";
+import {
+  AUTH_COOKIE_NAME,
+  SESSION_MAX_AGE,
+  createSessionToken,
+  verifySessionToken,
+  type SessionRole,
+} from "@/lib/session";
 import { User } from "@/models/User";
+
+export type { SessionRole };
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
 }
 
-export async function verifyPassword(password: string, hash: string) {
-  return bcrypt.compare(password, hash);
+// Accounts that only use Google sign-in have no password hash; they can never pass a password check.
+export async function verifyPassword(password: string, hash?: string | null) {
+  if (!hash || typeof hash !== "string") {
+    return false;
+  }
+
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch {
+    return false;
+  }
 }
 
-export async function setSessionCookie(userId: string) {
+function normalizeRole(role: unknown): SessionRole {
+  return role === "admin" ? "admin" : "customer";
+}
+
+/**
+ * Sets the signed session cookie. The role is embedded in the token so the edge proxy can enforce it.
+ * If `role` is omitted it is looked up from the database (missing/unknown => customer).
+ */
+export async function setSessionCookie(userId: string, role?: SessionRole) {
+  let resolvedRole: SessionRole;
+
+  if (role) {
+    resolvedRole = normalizeRole(role);
+  } else {
+    await connectDB();
+    const user = await User.findById(userId).select("role").lean();
+    resolvedRole = normalizeRole(user?.role);
+  }
+
   const cookieStore = await cookies();
-  const token = await createSessionToken(userId);
+  const token = await createSessionToken(userId, resolvedRole);
 
   cookieStore.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
@@ -51,12 +86,24 @@ export async function getCurrentUser() {
     return null;
   }
 
+  // A suspended customer is signed out everywhere, immediately.
+  if (user.status === "suspended") {
+    return null;
+  }
+
+  // A password reset invalidates every session issued before it.
+  if (user.passwordChangedAt && session.iat < new Date(user.passwordChangedAt).getTime()) {
+    return null;
+  }
+
+  // The database is the source of truth for the role (so demotions take effect immediately);
+  // the token role is only a fast path for the edge proxy.
   return {
     id: String(user._id),
-    name: user.name,
-    email: user.email,
-    // Existing users predate role support and retain legacy admin access.
-    role: user.role ?? "admin",
+    name: user.name as string,
+    email: user.email as string,
+    avatar: (user.avatar as string | undefined) ?? undefined,
+    role: normalizeRole(user.role),
   };
 }
 
@@ -71,4 +118,9 @@ export async function getCurrentAdminUser() {
 
 export async function requireAdminUser() {
   return getCurrentAdminUser();
+}
+
+// Any signed-in user (customer or admin).
+export async function requireCustomerOrAdmin() {
+  return getCurrentUser();
 }
