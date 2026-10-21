@@ -33,6 +33,18 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Image uploads
+
+Admin image uploads are stored in Cloudinary; runtime uploads are not written to the local `public` directory. Configure these server-only variables in the project root `.env.local` for local development and in the Vercel project environment settings for each deployed environment:
+
+```text
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+Do not prefix these names with `NEXT_PUBLIC_` or commit their values. Uploads accept JPG, PNG, WebP, and GIF images up to 4 MB. Existing `/uploads/...` references remain supported; new Cloudinary URLs continue to use the existing content fields, with upload metadata recorded separately in MongoDB. No existing images or database records are migrated or deleted automatically.
+
 ## Google sign-in setup
 
 Customers can sign in or sign up with "Continue with Google". Until you add credentials the button still renders, but clicking it returns the shopper to `/login` with a friendly "Google sign-in isn't set up yet" message.

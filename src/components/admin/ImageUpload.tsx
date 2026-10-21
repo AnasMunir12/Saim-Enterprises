@@ -2,6 +2,7 @@
 
 import { LoaderCircle, Replace, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
+import { MAX_IMAGE_FILE_SIZE } from "@/lib/image-file";
 
 type ImageUploadProps = {
   value: string;
@@ -19,17 +20,23 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
   async function upload(file: File) {
     setUploading(true);
     setError("");
+    if (file.size > MAX_IMAGE_FILE_SIZE) {
+      setError("Images must be 4MB or smaller.");
+      setUploading(false);
+      return;
+    }
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const response = await fetch("/api/uploads", { method: "POST", body: formData });
-      const data = (await response.json()) as { url?: string; message?: string };
-      if (!response.ok || !data.url) {
+      const data = (await response.json()) as { url?: string; secure_url?: string; public_id?: string; message?: string };
+      const url = data.secure_url ?? data.url;
+      if (!response.ok || !url || !data.public_id) {
         setError(data.message ?? "Unable to upload image.");
         return;
       }
-      onChange(data.url);
+      onChange(url);
     } catch {
       setError("Unable to upload image. Please try again.");
     } finally {
@@ -39,10 +46,10 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
 
   function handleFile(file?: File) {
     if (file) void upload(file);
+    if (inputRef.current) inputRef.current.value = "";
   }
 
-  // Only detaches the picture from the form. The file stays on disk until the owner saves, so cancelling an edit never
-  // leaves a record pointing at a deleted image.
+  // Only detaches the picture from the form; cancelling an edit must not delete a still-referenced image.
   function remove() {
     onChange("");
   }
@@ -51,10 +58,11 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
     <div className={className}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <span className="text-sm font-medium text-stone-700">{label}</span>
-        <span className="text-[11px] text-stone-400">JPG, PNG, WEBP up to 5MB</span>
+        <span className="text-[11px] text-stone-400">JPG, PNG, WEBP, GIF up to 4MB</span>
       </div>
       {value ? (
         <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- preview supports legacy paths and Cloudinary URLs */}
           <img src={value} alt={`${label} preview`} className="h-36 w-full rounded-lg object-contain" />
           <div className="mt-2 flex gap-2">
             <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700"><Replace size={14} /> Replace</button>

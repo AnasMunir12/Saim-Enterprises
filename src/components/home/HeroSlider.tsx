@@ -47,10 +47,11 @@ export function HeroSlider() {
   // Autoplay stops while the visitor hovers or focuses the hero, and never runs for reduced-motion visitors.
   useEffect(() => {
     if (slides.length < 2 || paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), AUTOPLAY_MS);
-    return () => window.clearInterval(timer);
-  }, [slides.length, paused]);
+    const timer = window.setTimeout(() => setActive((current) => (current + 1) % slides.length), AUTOPLAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [active, slides.length, paused]);
 
+  const go = (step: number) => setActive((current) => (current + step + slides.length) % slides.length);
   const slide = slides[active];
 
   if (!slide) {
@@ -67,7 +68,7 @@ export function HeroSlider() {
       <section className="hero hero--plain">
         <div className="hero__copy">
           <p className="eyebrow">Saim Enterprises</p>
-          <h1 className="hero__title">Objects with <em>a little soul.</em></h1>
+          <h4 className="hero__title">Objects with <em>a little soul.</em></h4>
           <p className="hero__lead">Handcrafted lighting, décor and custom pieces, made in our Lahore studio.</p>
           <div className="hero__actions">
             <ButtonLink href="/catalog" size="lg">Shop the collection <ArrowRight size={16} aria-hidden="true" /></ButtonLink>
@@ -77,8 +78,6 @@ export function HeroSlider() {
       </section>
     );
   }
-
-  const go = (step: number) => setActive((current) => (current + step + slides.length) % slides.length);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -90,6 +89,15 @@ export function HeroSlider() {
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            go(-1);
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            go(1);
+          }
+        }}
       >
         <div className="hero__copy">
           <AnimatePresence mode="wait">
@@ -102,7 +110,7 @@ export function HeroSlider() {
               aria-live="polite"
             >
               <p className="eyebrow">{slide.eyebrow}</p>
-              <h1 className="hero__title">{slide.title}</h1>
+              <h4 className="hero__title">{slide.title}</h4>
               <p className="hero__lead">{slide.description}</p>
               <div className="hero__actions">
                 <ButtonLink href={slide.primaryButtonUrl || "/catalog"} size="lg">
@@ -130,15 +138,15 @@ export function HeroSlider() {
 
           {slides.length > 1 ? (
             <div className="hero__controls">
-              <button type="button" className="icon-btn hero__arrow" onClick={() => go(-1)} aria-label="Previous slide"><ChevronLeft size={20} /></button>
-              <div className="hero__dots">
+              <button type="button" className="icon-btn hero__arrow hero__arrow--previous" onClick={() => go(-1)} aria-label="Previous slide"><ChevronLeft size={20} /></button>
+              <div className="hero__dots" role="group" aria-label="Choose a slide">
                 {slides.map((item, index) => (
                   <button type="button" className="hero__dot" key={item.id ?? item.title} onClick={() => setActive(index)} aria-label={`Show slide ${index + 1} of ${slides.length}`} aria-current={index === active}>
                     <i />
                   </button>
                 ))}
               </div>
-              <button type="button" className="icon-btn hero__arrow" onClick={() => go(1)} aria-label="Next slide"><ChevronRight size={20} /></button>
+              <button type="button" className="icon-btn hero__arrow hero__arrow--next" onClick={() => go(1)} aria-label="Next slide"><ChevronRight size={20} /></button>
             </div>
           ) : null}
         </div>
