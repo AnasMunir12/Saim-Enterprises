@@ -2,9 +2,9 @@
 
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLink } from "@/components/ui/ArrowLink";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, SkeletonLine } from "@/components/ui/Skeleton";
 import { StoreImage } from "@/components/ui/StoreImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NO_COPY, type HomeSectionCopy } from "@/lib/homepage-sections";
@@ -51,7 +51,6 @@ export function CategorySection({ copy = NO_COPY }: { copy?: HomeSectionCopy }) 
   if (tiles && tiles.length === 0) return null;
 
   const shown = (tiles ?? []).slice(0, 8);
-  const columns = shown.length <= 4 ? Math.max(1, shown.length) : shown.length <= 6 ? 3 : 4;
 
   return (
     <section className="section" id="collections" aria-labelledby="collections-heading">
@@ -64,21 +63,33 @@ export function CategorySection({ copy = NO_COPY }: { copy?: HomeSectionCopy }) 
         action={<ArrowLink href={copy.buttonLink || "/catalog"} icon="up-right">{copy.buttonText || "View all pieces"}</ArrowLink>}
       />
 
-      <div className="tiles" data-count={shown.length || 3} style={{ "--cols": columns } as CSSProperties}>
+      <div className="tiles" aria-busy={tiles === null}>
         {shown.map((item) => (
           <Link href={item.href} className="tile" key={item.key}>
-            <StoreImage src={item.image} alt="" />
+            <div className="tile__media">
+              <StoreImage src={item.image} alt={item.name} />
+            </div>
             <div className="tile__body">
-              <div>
-                <span className="tile__label">{item.label}</span>
-                <h3>{item.name}</h3>
-                {item.description ? <p className="tile__desc">{item.description}</p> : null}
-              </div>
-              <span className="tile__arrow"><ArrowUpRight size={18} aria-hidden="true" /></span>
+              <span className="tile__label">{item.label}</span>
+              <h3>{item.name}</h3>
+              {item.description ? <p className="tile__desc">{item.description}</p> : null}
+              <span className="tile__arrow">
+                <span>Explore {item.label.toLowerCase()}</span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </span>
             </div>
           </Link>
         ))}
-        {tiles === null ? Array.from({ length: 3 }, (_, index) => <Skeleton className="tile" key={index} />) : null}
+        {tiles === null ? Array.from({ length: 3 }, (_, index) => (
+          <div className="tile tile--loading" key={index} aria-hidden="true">
+            <Skeleton className="tile__media" />
+            <div className="tile__body">
+              <SkeletonLine />
+              <SkeletonLine wide />
+              <SkeletonLine />
+            </div>
+          </div>
+        )) : null}
       </div>
     </section>
   );

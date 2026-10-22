@@ -36,11 +36,19 @@ const BUILTIN: Record<string, (copy: HomeSectionCopy, extras: Extras) => ReactNo
 export function HomeSections({ sections, trustItems }: { sections: ResolvedSection[]; trustItems: TrustItem[] }) {
   return (
     <PageChrome>
+            <div className="home-sections">
+
       {sections
         .filter((section) => section.enabled)
         .map((section) => (
+          <div
+              key={section.key}
+              className={`home-section home-section--${section.key}`}
+            >
           <Fragment key={section.key}>{section.builtin ? BUILTIN[section.key]?.(section, { trustItems }) : <CustomBlock copy={section} />}</Fragment>
+         </div>
         ))}
+        </div>
     </PageChrome>
   );
 }

@@ -100,7 +100,7 @@ export function HeroSlider() {
         }}
       >
         <div className="hero__copy">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <motion.div
               key={slide.title}
               initial={{ opacity: 0, y: 16 }}
@@ -110,7 +110,7 @@ export function HeroSlider() {
               aria-live="polite"
             >
               <p className="eyebrow">{slide.eyebrow}</p>
-              <h4 className="hero__title">{slide.title}</h4>
+              <h3 className="hero__title">{slide.title}</h3>
               <p className="hero__lead">{slide.description}</p>
               <div className="hero__actions">
                 <ButtonLink href={slide.primaryButtonUrl || "/catalog"} size="lg">
