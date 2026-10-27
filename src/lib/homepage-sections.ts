@@ -3,6 +3,8 @@
 
 export type SectionField = "subtitle" | "title" | "description" | "image" | "button";
 
+export const HOMEPAGE_CATEGORY_LIMIT = 4;
+
 /** One entry of a section's repeating list: a value card, a story bullet point or a gallery photo. */
 export type SectionItem = { title: string; text: string; image: string };
 export type ItemField = keyof SectionItem;
@@ -70,6 +72,8 @@ export type BuiltinSection = {
   fields: SectionField[];
   /** Section-specific labels for the generic fields. */
   labels?: Partial<Record<SectionField, string>>;
+  /** Optional order for a newly added built-in without shifting existing default section order. */
+  defaultOrder?: number;
   /** A repeating list the owner can edit (cards, bullet points, photos). */
   items?: ItemsConfig;
 };
@@ -77,14 +81,15 @@ export type BuiltinSection = {
 export const BUILTIN_SECTIONS: BuiltinSection[] = [
   { key: "hero", label: "Hero slider", summary: "The large banner at the top. Slides are managed under Hero slides.", fields: [] },
   { key: "trust-strip", label: "Trust strip", summary: "Free delivery, returns, packaging and made-to-order points under the banner. Edit them under Site content > Trust strip.", fields: [] },
-  { key: "collections", label: "Shop by collection", summary: "Image tiles for your collections (or categories when there are no collections).", fields: ["subtitle", "title", "description", "button"], labels: { button: "Link text (View all pieces)" } },
-  { key: "featured-products", label: "Featured products", summary: "Up to four products marked as featured (newest pieces when none are).", fields: ["subtitle", "title", "button"] },
+  { key: "collections", label: "Shop by category", summary: "Up to four active categories selected on the Categories page.", fields: ["subtitle", "title", "description"] },
+  { key: "featured-products", label: "Featured products", summary: "Products selected in the Products dashboard.", fields: ["subtitle", "title", "description", "button"] },
   { key: "sale", label: "Offers", summary: "Appears automatically while any product has a compare-at price.", fields: ["subtitle", "title"], labels: { subtitle: "Small label (replaces \"Save up to N%\")" } },
   { key: "editorial", label: "Story block", summary: "Photo with a short brand story and its bullet points.", fields: ["subtitle", "title", "description", "image", "button"], items: STORY_POINTS },
   { key: "custom-design", label: "Custom pieces banner", summary: "Dark banner inviting visitors to start a custom piece.", fields: ["subtitle", "title", "description", "button"] },
   { key: "testimonials", label: "Testimonials", summary: "Up to three active testimonials. Manage them under Testimonials.", fields: ["subtitle"] },
   { key: "values", label: "Why choose us", summary: "Value cards about craftsmanship.", fields: ["subtitle", "title"], items: VALUE_CARDS },
   { key: "newsletter", label: "Gallery and newsletter", summary: "Inspiration photos and the email sign-up.", fields: ["title"], items: GALLERY_PHOTOS },
+  { key: "shop-by-collection", label: "Shop by collection", summary: "Image tiles for every active collection, in the order set in collection management.", fields: ["subtitle", "title", "description", "button"], labels: { button: "Link text (View all collections)" }, defaultOrder: 35 },
 ];
 
 export const CUSTOM_KEY_PREFIX = "block-";
@@ -105,6 +110,7 @@ export type SavedSection = {
   image?: string;
   buttonText?: string;
   buttonLink?: string;
+  categoryIds?: string[];
   items?: SectionItem[];
   enabled?: boolean;
   order?: number;
@@ -125,6 +131,7 @@ export type ResolvedSection = {
   image: string;
   buttonText: string;
   buttonLink: string;
+  categoryIds: string[] | null;
   /** The owner's own list, or empty to use `itemsConfig.defaults`. */
   items: SectionItem[];
   /** Present for sections with a repeating list. */
@@ -136,9 +143,9 @@ export type ResolvedSection = {
 };
 
 /** Wording overrides handed to a storefront section. Empty strings mean "use the built-in text". */
-export type HomeSectionCopy = Pick<ResolvedSection, "title" | "subtitle" | "description" | "image" | "buttonText" | "buttonLink" | "items">;
+export type HomeSectionCopy = Pick<ResolvedSection, "title" | "subtitle" | "description" | "image" | "buttonText" | "buttonLink" | "categoryIds" | "items">;
 
-export const NO_COPY: HomeSectionCopy = { title: "", subtitle: "", description: "", image: "", buttonText: "", buttonLink: "", items: [] };
+export const NO_COPY: HomeSectionCopy = { title: "", subtitle: "", description: "", image: "", buttonText: "", buttonLink: "", categoryIds: null, items: [] };
 
 /** The entries a storefront section shows: the owner's list, or the original entries while none is saved. */
 export function itemsFor(copy: HomeSectionCopy, key: string): SectionItem[] {
@@ -165,10 +172,11 @@ export function resolveHomepageSections(saved: SavedSection[]): ResolvedSection[
       image: stored?.image ?? "",
       buttonText: stored?.buttonText ?? "",
       buttonLink: stored?.buttonLink ?? "",
+      categoryIds: Array.isArray(stored?.categoryIds) ? stored.categoryIds.filter((id): id is string => typeof id === "string") : null,
       items: stored?.items ?? [],
       itemsConfig: definition.items ?? null,
       enabled: stored ? stored.enabled !== false : true,
-      order: typeof stored?.order === "number" && stored.order > 0 ? stored.order : (index + 1) * 10,
+      order: typeof stored?.order === "number" && stored.order > 0 ? stored.order : definition.defaultOrder ?? (index + 1) * 10,
       saved: Boolean(stored),
     };
   });
@@ -189,6 +197,7 @@ export function resolveHomepageSections(saved: SavedSection[]): ResolvedSection[
       image: section.image ?? "",
       buttonText: section.buttonText ?? "",
       buttonLink: section.buttonLink ?? "",
+      categoryIds: null,
       items: [],
       itemsConfig: null,
       enabled: section.enabled !== false,

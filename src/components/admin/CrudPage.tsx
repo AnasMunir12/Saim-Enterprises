@@ -42,6 +42,8 @@ type Props<T extends { id: string }, F> = {
   /** Name of a boolean property on the item that shows as a one-click Active / Hidden switch. */
   activeKey?: keyof T & string;
   activeLabels?: [string, string];
+  /** Notifies adjacent page UI after a record is created, updated, activated, or deleted. */
+  onChange?: () => void;
   reorderable?: boolean;
   /** Return null to hide the delete button for an item. */
   deleteConfig?: (item: T) => DeleteConfig | null;
@@ -63,7 +65,7 @@ const cap = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
  */
 export function CrudPage<T extends { id: string }, F extends object>({
   singular, plural, endpoint, listEndpoint, emptyForm, toForm, toPayload, validate, renderForm, renderRow, activeKey, activeLabels = ["Active", "Hidden"],
-  reorderable, deleteConfig, canCreate = true, formTitle, formIntro, listTitle, listIntro, emptyTitle, emptyText,
+  onChange, reorderable, deleteConfig, canCreate = true, formTitle, formIntro, listTitle, listIntro, emptyTitle, emptyText,
 }: Props<T, F>) {
   const resource = useAdminResource<T>(endpoint, { listEndpoint });
   const { notice, clear, success, fail } = useNotice();
@@ -103,6 +105,7 @@ export function CrudPage<T extends { id: string }, F extends object>({
       const body = toPayload ? toPayload(form, editing) : (form as Record<string, unknown>);
       if (editing) await resource.update(editing.id, body);
       else await resource.create(body);
+      onChange?.();
       success(`${cap(singular)} ${editing ? "saved" : "added"}.`);
       reset();
     } catch (error) {
@@ -117,6 +120,7 @@ export function CrudPage<T extends { id: string }, F extends object>({
     setBusy(true);
     try {
       await resource.remove(deleting.item.id);
+      onChange?.();
       success(deleting.config.done);
       if (editing?.id === deleting.item.id) reset();
     } catch (error) {
@@ -132,6 +136,7 @@ export function CrudPage<T extends { id: string }, F extends object>({
     setWorking(item.id);
     try {
       await resource.update(item.id, { [activeKey]: !item[activeKey] });
+      onChange?.();
     } catch (error) {
       fail(error, `Could not update the ${singular}.`);
     } finally {

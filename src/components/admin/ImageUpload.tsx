@@ -4,27 +4,34 @@ import { LoaderCircle, Replace, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
 import { MAX_IMAGE_FILE_SIZE } from "@/lib/image-file";
 
+const SUPPORTED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 type ImageUploadProps = {
   value: string;
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  browseLabel?: string;
+  replaceLabel?: string;
 };
 
-export function ImageUpload({ value, onChange, label = "Image", className = "" }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label = "Image", className = "", browseLabel = "Drop image here or browse files", replaceLabel = "Replace" }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
 
   async function upload(file: File) {
-    setUploading(true);
     setError("");
-    if (file.size > MAX_IMAGE_FILE_SIZE) {
-      setError("Images must be 4MB or smaller.");
-      setUploading(false);
+    if (!SUPPORTED_IMAGE_MIME_TYPES.has(file.type)) {
+      setError("Use a JPG, PNG, WEBP, or GIF image.");
       return;
     }
+    if (file.size > MAX_IMAGE_FILE_SIZE) {
+      setError("Images must be 4MB or smaller.");
+      return;
+    }
+    setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -65,7 +72,7 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
           {/* eslint-disable-next-line @next/next/no-img-element -- preview supports legacy paths and Cloudinary URLs */}
           <img src={value} alt={`${label} preview`} className="h-36 w-full rounded-lg object-contain" />
           <div className="mt-2 flex gap-2">
-            <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700"><Replace size={14} /> Replace</button>
+            <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-700"><Replace size={14} /> {replaceLabel}</button>
             <button type="button" onClick={remove} className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"><Trash2 size={14} /> Remove</button>
           </div>
         </div>
@@ -79,10 +86,11 @@ export function ImageUpload({ value, onChange, label = "Image", className = "" }
           className={`flex min-h-36 w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-6 text-sm transition ${dragging ? "border-stone-900 bg-stone-100" : "border-stone-300 bg-stone-50 hover:border-stone-500"}`}
         >
           {uploading ? <LoaderCircle className="animate-spin text-stone-500" size={24} /> : <UploadCloud size={24} className="text-stone-500" />}
-          <span className="font-medium text-stone-700">{uploading ? "Uploading..." : "Drop image here or browse files"}</span>
+          <span className="font-medium text-stone-700">{uploading ? "Uploading..." : browseLabel}</span>
           <span className="text-xs text-stone-400">Preserves the original aspect ratio</span>
         </button>
       )}
+      {uploading && value ? <p className="mt-2 text-xs text-stone-500" role="status">Uploading image...</p> : null}
       {error ? <p className="mt-2 text-xs text-red-600" role="alert">{error}</p> : null}
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(event) => handleFile(event.target.files?.[0])} />
     </div>

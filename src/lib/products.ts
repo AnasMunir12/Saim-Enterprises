@@ -2,6 +2,7 @@ import { LOW_STOCK_THRESHOLD, stockState } from "@/lib/inventory";
 
 /** A product shows one main image plus extras, up to this many pictures in total. */
 export const MAX_PRODUCT_IMAGES = 8;
+export const MAX_FEATURED_PRODUCTS = 5;
 
 // Client-safe storefront product. Built from the public /api/products record with `toStoreProduct`.
 export type Product = {

@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   // The site must still render when the database is unreachable: fall back to the built-in defaults.
   const settings: SiteSettings | null = await getSettings()
-    .then(({ websiteName, contactEmail, phone, whatsapp, showWhatsappButton, address, openingHours, announcement, socialLinks }) => ({ websiteName, contactEmail, phone, whatsapp, showWhatsappButton, address, openingHours, announcement, socialLinks }))
+    .then(({ websiteName, logo, logoDesktopWidth, logoMobileWidth, logoMaxHeight, logoObjectFit, contactEmail, phone, whatsapp, showWhatsappButton, address, openingHours, announcement, socialLinks }) => ({ websiteName, logo, logoDesktopWidth, logoMobileWidth, logoMaxHeight, logoObjectFit, contactEmail, phone, whatsapp, showWhatsappButton, address, openingHours, announcement, socialLinks }))
     .catch(() => null);
 
   return (

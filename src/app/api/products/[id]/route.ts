@@ -3,6 +3,7 @@ import { requireAdminUser } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { serializeRecord } from "@/lib/mongo-record";
 import { parseProductInput } from "@/lib/product-input";
+import { MAX_FEATURED_PRODUCTS } from "@/lib/products";
 import { Category } from "@/models/Category";
 import { Product } from "@/models/Product";
 
@@ -62,6 +63,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const values = parsed.values;
+    if (values.featured === true && !product.featured && await Product.countDocuments({ featured: true }) >= MAX_FEATURED_PRODUCTS) {
+      return NextResponse.json({ message: `A maximum of ${MAX_FEATURED_PRODUCTS} products can be featured on the homepage.` }, { status: 400 });
+    }
     if (typeof values.categoryId === "string" && values.categoryId !== product.categoryId && !(await Category.exists({ _id: values.categoryId }))) {
       return NextResponse.json({ message: "Category not found." }, { status: 400 });
     }

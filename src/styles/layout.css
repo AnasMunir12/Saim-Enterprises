@@ -108,6 +108,21 @@ a.announcement-message:hover {
     min-height: var(--tap);
 }
 
+.wordmark--image {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.wordmark-logo {
+    display: block;
+    width: var(--logo-mobile-width, 160px);
+    height: var(--logo-max-height, 48px);
+    max-width: 100%;
+    object-fit: var(--logo-object-fit, contain);
+}
+
 .main-nav {
     background: var(--paper);
     border-bottom: 1px solid var(--line);
@@ -413,17 +428,20 @@ a.announcement-message:hover {
     align-items: center;
     border-top: 1px solid rgba(247, 244, 239, 0.14);
     color: rgba(247, 244, 239, 0.7);
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     font-size: var(--text-sm);
     gap: var(--space-1) var(--space-5);
-    justify-content: space-between;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     padding-top: var(--space-4);
 }
 
 .footer-legal {
     display: inline-flex;
+    flex-wrap: wrap;
     gap: var(--space-2) var(--space-5);
+    grid-column: 2;
+    justify-content: center;
+    max-width: 100%;
 }
 
 .footer-legal a {
@@ -437,9 +455,26 @@ a.announcement-message:hover {
     color: #fff;
 }
 
+@media (max-width: 899px) {
+    .footer-bottom {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .footer-legal {
+        grid-column: 1;
+        justify-content: center;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
 @media (min-width: 900px) {
     .footer-top {
         grid-template-columns: 1.6fr 1fr 1fr 1.3fr;
+    }
+
+    .wordmark-logo {
+        width: var(--logo-desktop-width, 220px);
     }
 
     .footer-top> :first-child {

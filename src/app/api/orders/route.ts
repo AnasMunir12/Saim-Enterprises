@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth";
 import { checkLines, describeIssue, parseQuantities } from "@/lib/cart-check";
+import { BUSINESS_EMAIL } from "@/lib/constants";
+import { formatCurrency, sendOrderNotificationEmailJS } from "@/lib/email";
 import { connectDB } from "@/lib/mongodb";
 import { toOrderView } from "@/lib/orders";
+import { getSettings } from "@/lib/settings";
 import { createId } from "@/lib/site-data";
-import { Order } from "@/models/Order";
+import { Order, type IOrderItem } from "@/models/Order";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +115,33 @@ export async function POST(request: Request) {
       items,
       total,
       status: "pending",
+    });
+
+    after(async () => {
+      try {
+        const settings = await getSettings();
+        const notificationEmail =
+          settings.businessOrderEmail.trim() || process.env.BUSINESS_EMAIL?.trim() || BUSINESS_EMAIL;
+        const orderDate = order.createdAt
+          ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(order.createdAt)
+          : new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date());
+
+        await sendOrderNotificationEmailJS({
+          to_email: notificationEmail,
+          order_id: String(order._id),
+          customer_name: order.customerName || "Not provided",
+          customer_email: order.customerEmail || "Not provided",
+          customer_phone: order.phone?.trim() || "Not provided",
+          order_items: order.items
+            .map((item: IOrderItem) => `${item.name} x${item.quantity} - ${formatCurrency(item.price * item.quantity)}`)
+            .join("\n"),
+          order_total: formatCurrency(order.total),
+          delivery_address: order.shippingAddress?.trim() || "Not provided",
+          order_date: orderDate,
+        });
+      } catch (error) {
+        console.error("Order email dispatch failed:", error instanceof Error ? error.message : error);
+      }
     });
 
     return NextResponse.json({ order: toOrderView(order.toObject() as Record<string, unknown>) }, { status: 201, headers: NO_STORE });

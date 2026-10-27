@@ -4,6 +4,7 @@ import { availabilityForStock } from "@/lib/inventory";
 import { connectDB } from "@/lib/mongodb";
 import { serializeRecords } from "@/lib/mongo-record";
 import { generateSku, parseProductInput } from "@/lib/product-input";
+import { MAX_FEATURED_PRODUCTS } from "@/lib/products";
 import { createId } from "@/lib/site-data";
 import { Category } from "@/models/Category";
 import { Product } from "@/models/Product";
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
     }
     const values = parsed.values;
 
+    if (values.featured === true && await Product.countDocuments({ featured: true }) >= MAX_FEATURED_PRODUCTS) {
+      return NextResponse.json({ message: `A maximum of ${MAX_FEATURED_PRODUCTS} products can be featured on the homepage.` }, { status: 400 });
+    }
     if (!(await Category.exists({ _id: values.categoryId as string }))) {
       return NextResponse.json({ message: "Category not found." }, { status: 400 });
     }

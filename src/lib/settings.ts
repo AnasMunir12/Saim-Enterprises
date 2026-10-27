@@ -5,8 +5,13 @@ import type { WebsiteSettings } from "@/lib/site-data";
 export const emptyWebsiteSettings: WebsiteSettings = {
   websiteName: "",
   logo: "",
+  logoDesktopWidth: 220,
+  logoMobileWidth: 160,
+  logoMaxHeight: 48,
+  logoObjectFit: "contain",
   favicon: "",
   contactEmail: "",
+  businessOrderEmail: "",
   phone: "",
   whatsapp: "",
   showWhatsappButton: true,
@@ -19,6 +24,11 @@ export const emptyWebsiteSettings: WebsiteSettings = {
 };
 
 const KEYS = Object.keys(emptyWebsiteSettings) as Array<keyof WebsiteSettings>;
+const LOGO_DIMENSION_RULES = {
+  logoDesktopWidth: { min: 64, max: 320, label: "Desktop logo width" },
+  logoMobileWidth: { min: 48, max: 240, label: "Mobile logo width" },
+  logoMaxHeight: { min: 24, max: 56, label: "Logo maximum height" },
+} as const;
 
 // Keeps only the known public fields (drops _id, timestamps and anything unexpected) and fills the gaps.
 // Text fields default to empty and flags to their built-in value, so a Settings document saved before a field existed still reads fine.
@@ -26,9 +36,15 @@ function normalizeSettings(value: Partial<WebsiteSettings> | null | undefined): 
   const result: Record<string, unknown> = { ...emptyWebsiteSettings };
   for (const key of KEYS) {
     const incoming = value?.[key];
-    if (key === "socialLinks") continue;
+    if (key === "socialLinks" || key === "logoObjectFit" || key in LOGO_DIMENSION_RULES) continue;
     if (typeof incoming === "string" || typeof incoming === "boolean") result[key] = incoming;
   }
+  for (const key of Object.keys(LOGO_DIMENSION_RULES) as Array<keyof typeof LOGO_DIMENSION_RULES>) {
+    const incoming = value?.[key];
+    const { min, max } = LOGO_DIMENSION_RULES[key];
+    if (typeof incoming === "number" && Number.isInteger(incoming) && incoming >= min && incoming <= max) result[key] = incoming;
+  }
+  if (value?.logoObjectFit === "contain" || value?.logoObjectFit === "cover") result.logoObjectFit = value.logoObjectFit;
   result.socialLinks = Array.isArray(value?.socialLinks)
     ? value.socialLinks.filter((link) => link && typeof link.label === "string" && typeof link.url === "string").map((link) => ({ label: link.label, url: link.url }))
     : [];
@@ -73,6 +89,7 @@ const RULES: Partial<Record<keyof WebsiteSettings, Rule>> = {
   logo: { max: 2000, label: "Logo" },
   favicon: { max: 2000, label: "Favicon" },
   contactEmail: { max: 254, label: "Public email", check: (v) => (v && !EMAIL.test(v) ? "Enter a valid public email address." : null) },
+  businessOrderEmail: { max: 254, label: "Order notification email", check: (v) => (v && !EMAIL.test(v) ? "Enter a valid order notification email address." : null) },
   phone: { max: 30, label: "Phone", check: (v) => (v && (!PHONE.test(v) || v.replace(/\D/g, "").length < 6) ? "Enter a valid phone number (digits, spaces, + ( ) - only)." : null) },
   whatsapp: { max: 30, label: "WhatsApp number", check: (v) => (v && (!PHONE.test(v) || v.replace(/\D/g, "").length < 10) ? "Enter a valid WhatsApp number with at least 10 digits." : null) },
   address: { max: 300, multiline: true, label: "Address" },
@@ -97,10 +114,28 @@ export function parseSettingsInput(payload: Record<string, unknown>): SettingsIn
     }
     if (typeof raw !== "string") return { ok: false, message: `${rule.label} must be text.` };
     const cleaned = clean(raw, rule.multiline === true);
-    if (cleaned.length > rule.max) return { ok: false, message: `${rule.label} must be ${rule.max} characters or fewer.` };
-    const problem = rule.check?.(cleaned) ?? null;
+    const normalized = key === "businessOrderEmail" ? cleaned.toLowerCase() : cleaned;
+    if (normalized.length > rule.max) return { ok: false, message: `${rule.label} must be ${rule.max} characters or fewer.` };
+    const problem = rule.check?.(normalized) ?? null;
     if (problem) return { ok: false, message: problem };
-    value[key] = cleaned;
+    value[key] = normalized;
+  }
+
+  for (const key of Object.keys(LOGO_DIMENSION_RULES) as Array<keyof typeof LOGO_DIMENSION_RULES>) {
+    if (!(key in payload)) continue;
+    const raw = payload[key];
+    const { min, max, label } = LOGO_DIMENSION_RULES[key];
+    if (typeof raw !== "number" || !Number.isInteger(raw) || raw < min || raw > max) {
+      return { ok: false, message: `${label} must be a whole number from ${min} to ${max} pixels.` };
+    }
+    value[key] = raw;
+  }
+
+  if ("logoObjectFit" in payload) {
+    if (payload.logoObjectFit !== "contain" && payload.logoObjectFit !== "cover") {
+      return { ok: false, message: "Logo image fit must be contain or cover." };
+    }
+    value.logoObjectFit = payload.logoObjectFit;
   }
 
   if ("showWhatsappButton" in payload) {

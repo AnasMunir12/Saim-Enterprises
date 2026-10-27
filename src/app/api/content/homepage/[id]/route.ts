@@ -1,8 +1,9 @@
 import { adminRoute, ApiError, ok, readJsonObject } from "@/lib/api";
 import { SECTION_SPEC, editableKey, parseSectionItems, readResolvedSection, upsertSection } from "@/lib/homepage-api";
-import { builtinByKey, isCustomKey } from "@/lib/homepage-sections";
+import { builtinByKey, HOMEPAGE_CATEGORY_LIMIT, isCustomKey } from "@/lib/homepage-sections";
 import { parseFields } from "@/lib/validate";
 import { HomepageSection } from "@/models/HomepageSection";
+import { Category } from "@/models/Category";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,17 @@ export const PUT = adminRoute<Params>("update the homepage section", async ({ re
   const payload = await readJsonObject(request);
   const values: Record<string, unknown> = parseFields(payload, SECTION_SPEC, { partial: true });
   if (isCustomKey(key) && "title" in values && !values.title) throw new ApiError("Heading is required.");
+  if ("categoryIds" in payload) {
+    if (key !== "collections") throw new ApiError("Category selection can only be saved for the homepage category section.");
+    const ids = payload.categoryIds;
+    if (!Array.isArray(ids) || ids.length > HOMEPAGE_CATEGORY_LIMIT || ids.some((id) => typeof id !== "string" || !id.trim())) {
+      throw new ApiError(`Choose no more than ${HOMEPAGE_CATEGORY_LIMIT} valid categories.`);
+    }
+    if (new Set(ids).size !== ids.length) throw new ApiError("A category cannot be selected more than once.");
+    const eligible = await Category.countDocuments({ _id: { $in: ids }, active: true });
+    if (eligible !== ids.length) throw new ApiError("Every selected category must exist and be active.");
+    values.categoryIds = ids;
+  }
   const itemsConfig = builtinByKey(key)?.items;
   if (itemsConfig && "items" in payload) values.items = parseSectionItems(itemsConfig, payload.items);
   await upsertSection(key, values);

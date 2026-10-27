@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Field, inputCls } from "@/components/admin/ui";
 
 // Labelled form controls with consistent spacing, hints and error text. Each one wires the label to its input.
@@ -19,7 +20,11 @@ export function TextField({ label, hint, error, required, value, onChange, place
   const id = useId();
   return (
     <Field label={required ? `${label} *` : label} hint={hint} error={error} htmlFor={id}>
-      <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} maxLength={maxLength} disabled={disabled} autoComplete={autoComplete} aria-required={required} className={inputCls} />
+      {type === "password" ? (
+        <PasswordInput id={id} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} maxLength={maxLength} disabled={disabled} autoComplete={autoComplete} aria-required={required} className={inputCls} />
+      ) : (
+        <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} maxLength={maxLength} disabled={disabled} autoComplete={autoComplete} aria-required={required} className={inputCls} />
+      )}
     </Field>
   );
 }

@@ -15,6 +15,7 @@ export interface IHomepageSection {
   image?: string;
   buttonText?: string;
   buttonLink?: string;
+  categoryIds?: string[];
   items: ISectionItem[];
   enabled: boolean;
   order: number;
@@ -35,6 +36,7 @@ const HomepageSectionSchema = new Schema<IHomepageSection>({
   image: { type: String, default: "" },
   buttonText: { type: String, default: "" },
   buttonLink: { type: String, default: "" },
+  categoryIds: { type: [String], default: undefined },
   items: { type: [SectionItemSchema], default: [] },
   enabled: { type: Boolean, default: true, index: true },
   order: { type: Number, default: 0, index: true },

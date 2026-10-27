@@ -2,6 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { CategorySection } from "@/components/home/CategorySection";
+import { CollectionSection } from "@/components/home/CollectionSection";
 import { CustomBlock } from "@/components/home/CustomBlock";
 import { CustomDesignSection } from "@/components/home/CustomDesignSection";
 import { EditorialSection } from "@/components/home/EditorialSection";
@@ -23,6 +24,7 @@ const BUILTIN: Record<string, (copy: HomeSectionCopy, extras: Extras) => ReactNo
   hero: () => <HeroSlider />,
   "trust-strip": (_copy, { trustItems }) => <TrustStrip items={trustItems} />,
   collections: (copy) => <CategorySection copy={copy} />,
+  "shop-by-collection": (copy) => <CollectionSection copy={copy} />,
   "featured-products": (copy) => <FeaturedProducts copy={copy} />,
   sale: (copy) => <SaleSection copy={copy} />,
   editorial: (copy) => <EditorialSection copy={copy} />,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -64,8 +65,7 @@ export default function AdminLoginPage() {
               Password
               <Link href="/forgot-password" className="text-xs font-medium text-stone-900 underline">Forgot password?</Link>
             </span>
-            <input
-              type="password"
+            <PasswordInput
               required
               autoComplete="current-password"
               value={password}

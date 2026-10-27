@@ -67,7 +67,7 @@ export function Footer() {
 
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} {name}</span>
-        <span className="footer-legal"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/about">About</Link></span>
+        <span className="footer-legal"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/about">About</Link><Link href="/admin/login">Admin Login</Link></span>
       </div>
     </footer>
   );

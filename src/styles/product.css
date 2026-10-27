@@ -126,6 +126,131 @@
     min-height: 24px;
 }
 
+/* ---------- Homepage featured products carousel ---------- */
+.featured-carousel {
+    min-width: 0;
+}
+
+.featured-carousel__viewport {
+    --featured-visible: 3;
+    --featured-gap: 24px;
+    contain: paint;
+    overflow: hidden;
+    padding: 14px;
+    margin: -14px;
+    scroll-behavior: auto;
+    touch-action: pan-y;
+}
+
+.featured-products__all {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-6);
+}
+
+.featured-carousel__viewport:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.featured-carousel__track {
+    align-items: stretch;
+    display: flex;
+    gap: var(--featured-gap);
+    width: 100%;
+}
+
+.featured-carousel__track--static {
+    justify-content: center;
+}
+
+.featured-carousel__slide {
+    flex: 0 0 calc((100% - (var(--featured-visible) - 1) * var(--featured-gap)) / var(--featured-visible));
+    min-width: 0;
+}
+
+.featured-carousel__slide .pcard {
+    background: var(--surface);
+    border: 1px solid rgba(85, 93, 75, 0.14);
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 18px rgba(28, 22, 17, 0.07);
+    height: 100%;
+    overflow: hidden;
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.featured-carousel__slide .pcard__body {
+    padding: var(--space-4);
+}
+
+.featured-carousel__slide .pcard__media {
+    background: var(--paper);
+}
+
+@media (hover: hover) {
+    .featured-carousel__slide .pcard:hover {
+        border-color: rgba(189, 152, 99, 0.72);
+        box-shadow: 0 12px 28px rgba(28, 22, 17, 0.13);
+    }
+}
+
+.featured-carousel__controls {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+    margin-top: var(--space-4);
+}
+
+.featured-carousel__control {
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-md);
+    color: var(--olive-deep);
+    display: inline-flex;
+    height: var(--tap);
+    justify-content: center;
+    transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+    width: var(--tap);
+}
+
+.featured-carousel__control:hover {
+    background: var(--paper);
+    border-color: var(--gold);
+    color: var(--accent-ink);
+}
+
+.featured-carousel__control:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.featured-carousel__control:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+@media (max-width: 899px) {
+    .featured-carousel__viewport {
+        --featured-visible: 2;
+        --featured-gap: 20px;
+    }
+}
+
+@media (max-width: 599px) {
+    .featured-carousel__viewport {
+        --featured-visible: 1;
+        --featured-gap: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .featured-carousel__slide .pcard,
+    .featured-carousel__control {
+        transition: none;
+    }
+}
+
 /* Wishlist heart (card, product page and account share it) */
 .wish-btn {
     background: rgba(247, 243, 238, 0.94);

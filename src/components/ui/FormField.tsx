@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 type Shared = { label: string; hint?: ReactNode; error?: string; aside?: ReactNode };
 
@@ -23,9 +24,14 @@ const describedBy = (id: string, hint: ReactNode, error?: string) => [hint ? `${
 /** A labelled text input with optional hint, inline error and a right-aligned aside (e.g. "Forgot password?"). */
 export function TextField({ label, hint, error, aside, ...input }: Shared & Omit<InputHTMLAttributes<HTMLInputElement>, "className">) {
   const id = useId();
+  const { type, ...inputProps } = input;
   return (
     <Shell id={id} label={label} required={input.required} hint={hint} error={error} aside={aside}>
-      <input {...input} id={id} className="field__control" aria-describedby={describedBy(id, hint, error)} aria-invalid={error ? true : undefined} />
+      {type === "password" ? (
+        <PasswordInput {...inputProps} id={id} className="field__control" aria-describedby={describedBy(id, hint, error)} aria-invalid={error ? true : undefined} />
+      ) : (
+        <input {...inputProps} type={type} id={id} className="field__control" aria-describedby={describedBy(id, hint, error)} aria-invalid={error ? true : undefined} />
+      )}
     </Shell>
   );
 }

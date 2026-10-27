@@ -4,12 +4,13 @@ import { LoaderCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GalleryField } from "@/components/admin/GalleryField";
+import { FeaturedProductSelection } from "@/components/admin/FeaturedProductSelection";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Alert, Badge, ConfirmDialog, EmptyState, Field, PageHeader, Pagination, SidePanel, Spinner, cardCls, inputCls, primaryBtn, secondaryBtn, smallBtn, smallDangerBtn } from "@/components/admin/ui";
 import { adminFetch } from "@/lib/admin-fetch";
 import { formatPKR } from "@/lib/format";
 import { LOW_STOCK_THRESHOLD, parseStock, stockState, type StockState } from "@/lib/inventory";
-import { MAX_PRODUCT_IMAGES } from "@/lib/products";
+import { MAX_FEATURED_PRODUCTS, MAX_PRODUCT_IMAGES } from "@/lib/products";
 import type { CategoryRecord, CollectionRecord, ProductRecord } from "@/lib/site-data";
 
 const PAGE_SIZE = 20;
@@ -202,6 +203,7 @@ export default function ProductsPage() {
   const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const allVisibleSelected = visible.length > 0 && visible.every((product) => selected.has(product.id));
   const selectedIds = [...selected].filter((id) => products.some((product) => product.id === id));
+  const featuredCount = products.filter((product) => product.featured).length;
   const hasFilters = Boolean(search) || stockFilter !== "all" || statusFilter !== "all" || categoryFilter !== "all";
 
   function toggleOne(id: string) {
@@ -395,6 +397,7 @@ export default function ProductsPage() {
       />
 
       {notice ? <Alert tone={notice.tone} onDismiss={() => setNotice(null)}>{notice.text}</Alert> : null}
+      <FeaturedProductSelection products={products} loading={loading} loadError={loadError} onRefresh={load} />
 
       <div className={cardCls}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -599,9 +602,12 @@ export default function ProductsPage() {
                 <option value="inactive">Inactive</option>
               </select>
             </Field>
-            <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
-              <input type="checkbox" checked={draft.featured} onChange={(event) => field("featured", event.target.checked)} /> Featured on homepage
-            </label>
+            <div className="self-end">
+              <label className="flex items-center gap-2 pb-2.5 text-sm">
+                <input type="checkbox" checked={draft.featured} disabled={!draft.featured && featuredCount >= MAX_FEATURED_PRODUCTS} onChange={(event) => field("featured", event.target.checked)} /> Show in Featured Products
+              </label>
+              {!draft.featured && featuredCount >= MAX_FEATURED_PRODUCTS ? <p className="text-xs text-amber-700">Maximum of {MAX_FEATURED_PRODUCTS} featured products reached.</p> : null}
+            </div>
           </div>
 
           <fieldset className="space-y-4 rounded-xl border border-stone-200 p-4">

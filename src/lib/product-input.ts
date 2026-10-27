@@ -75,7 +75,10 @@ export function parseProductInput(payload: Record<string, unknown>, current?: { 
   }
 
   for (const field of ["featured", "customizable"] as const) {
-    if (field in payload) values[field] = Boolean(payload[field]);
+    if (field in payload) {
+      if (typeof payload[field] !== "boolean") return { ok: false, message: `${field} must be on or off.` };
+      values[field] = payload[field];
+    }
   }
 
   for (const field of ["images", "tags"] as const) {

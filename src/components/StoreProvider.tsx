@@ -26,6 +26,11 @@ export type CartLine = {
 
 export type SiteSettings = {
   websiteName: string;
+  logo: string;
+  logoDesktopWidth: number;
+  logoMobileWidth: number;
+  logoMaxHeight: number;
+  logoObjectFit: "contain" | "cover";
   contactEmail: string;
   phone: string;
   whatsapp: string;
@@ -39,6 +44,11 @@ export type SiteSettings = {
 function toSiteSettings(data: Partial<SiteSettings>): SiteSettings {
   return {
     websiteName: data.websiteName ?? "",
+    logo: data.logo ?? "",
+    logoDesktopWidth: typeof data.logoDesktopWidth === "number" && Number.isInteger(data.logoDesktopWidth) && data.logoDesktopWidth >= 64 && data.logoDesktopWidth <= 320 ? data.logoDesktopWidth : 220,
+    logoMobileWidth: typeof data.logoMobileWidth === "number" && Number.isInteger(data.logoMobileWidth) && data.logoMobileWidth >= 48 && data.logoMobileWidth <= 240 ? data.logoMobileWidth : 160,
+    logoMaxHeight: typeof data.logoMaxHeight === "number" && Number.isInteger(data.logoMaxHeight) && data.logoMaxHeight >= 24 && data.logoMaxHeight <= 56 ? data.logoMaxHeight : 48,
+    logoObjectFit: data.logoObjectFit === "cover" ? "cover" : "contain",
     contactEmail: data.contactEmail ?? "",
     phone: data.phone ?? "",
     whatsapp: data.whatsapp ?? "",
@@ -63,6 +73,7 @@ export type StoreUser = {
 type StoreValue = {
   cart: CartLine[];
   settings: SiteSettings | null;
+  syncSettings: (settings: Partial<SiteSettings>) => void;
   /** Digits-only WhatsApp number (admin setting, normalised, with a built-in fallback). */
   whatsappNumber: string;
   cartOpen: boolean;
@@ -129,6 +140,11 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
   const userRef = useRef<StoreUser | null>(null);
   const cartRef = useRef<CartLine[]>([]);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settingsRevision = useRef(0);
+  const syncSettings = useCallback((data: Partial<SiteSettings>) => {
+    settingsRevision.current += 1;
+    setSettings(toSiteSettings(data));
+  }, []);
   useEffect(() => {
     userRef.current = user;
   }, [user]);
@@ -168,10 +184,11 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
   // browser so a long-lived tab picks up edits made in the admin Settings page.
   useEffect(() => {
     let cancelled = false;
+    const revision = settingsRevision.current;
     fetch("/api/settings", { cache: "no-store" })
       .then(async (response) => (response.ok ? ((await response.json()) as Partial<SiteSettings>) : null))
       .then((data) => {
-        if (cancelled || !data) return;
+        if (cancelled || !data || revision !== settingsRevision.current) return;
         setSettings(toSiteSettings(data));
       })
       .catch(() => undefined);
@@ -377,6 +394,7 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
     return {
       cart,
       settings,
+      syncSettings,
       whatsappNumber: normalizeWhatsapp(settings?.whatsapp),
       cartOpen,
       cartIntent,
@@ -405,7 +423,7 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
       clearCart: () => setCart([]),
       signOut,
     };
-  }, [cart, settings, cartOpen, cartIntent, openCart, closeCart, refreshCart, notify, wishlist, user, userLoaded, addToCart, toggleWishlist, signOut]);
+  }, [cart, settings, syncSettings, cartOpen, cartIntent, openCart, closeCart, refreshCart, notify, wishlist, user, userLoaded, addToCart, toggleWishlist, signOut]);
 
   return (
     <StoreContext.Provider value={value}>
