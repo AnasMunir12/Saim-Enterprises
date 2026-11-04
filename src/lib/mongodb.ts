@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { resolveSrv } from "node:dns/promises";
 
 declare global {
   var mongooseCache:
@@ -17,6 +18,7 @@ const globalWithMongoose = globalThis as typeof globalThis & {
 };
 
 const cached = globalWithMongoose.mongooseCache ?? { conn: null, promise: null };
+let resolvedUriPromise: Promise<string> | null = null;
 
 globalWithMongoose.mongooseCache = cached;
 
@@ -31,8 +33,10 @@ export async function connectDB() {
     return cached.conn;
   }
 
+  resolvedUriPromise ??= Promise.resolve(getMongoUri(uri));
+
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri, {
+    cached.promise = mongoose.connect(await resolvedUriPromise, {
       serverSelectionTimeoutMS: 5000,
     });
   }
@@ -43,5 +47,34 @@ export async function connectDB() {
   } catch (error) {
     cached.promise = null;
     throw error;
+  }
+}
+
+async function getMongoUri(uri: string) {
+  if (!uri.startsWith("mongodb+srv://")) {
+    return uri;
+  }
+
+  try {
+    const parsed = new URL(uri);
+    const seeds = await resolveSrv(`_mongodb._tcp.${parsed.hostname}`);
+    if (seeds.length === 0) {
+      return uri;
+    }
+
+    const username = encodeURIComponent(decodeURIComponent(parsed.username));
+    const password = encodeURIComponent(decodeURIComponent(parsed.password));
+    const credentials = username ? `${username}:${password}@` : "";
+    const hosts = seeds
+      .map(({ name, port }) => `${name}:${port}`)
+      .sort()
+      .join(",");
+    const options = new URLSearchParams(parsed.search);
+    if (!options.has("tls") && !options.has("ssl")) {
+      options.set("tls", "true");
+    }
+    return `mongodb://${credentials}${hosts}${parsed.pathname}?${options.toString()}`;
+  } catch {
+    return uri;
   }
 }

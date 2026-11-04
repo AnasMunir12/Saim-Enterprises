@@ -7,8 +7,9 @@ export const emptyWebsiteSettings: WebsiteSettings = {
   logo: "",
   logoDesktopWidth: 220,
   logoMobileWidth: 160,
-  logoMaxHeight: 48,
+  logoMaxHeight: 56,
   logoObjectFit: "contain",
+  logoHorizontalPosition: 0,
   favicon: "",
   contactEmail: "",
   businessOrderEmail: "",
@@ -27,7 +28,10 @@ const KEYS = Object.keys(emptyWebsiteSettings) as Array<keyof WebsiteSettings>;
 const LOGO_DIMENSION_RULES = {
   logoDesktopWidth: { min: 64, max: 320, label: "Desktop logo width" },
   logoMobileWidth: { min: 48, max: 240, label: "Mobile logo width" },
-  logoMaxHeight: { min: 24, max: 56, label: "Logo maximum height" },
+  logoMaxHeight: { min: 24, max: 96, label: "Logo maximum height" },
+} as const;
+const LOGO_POSITION_RULES = {
+  logoHorizontalPosition: { min: 0, max: 50, label: "Horizontal logo position" },
 } as const;
 
 // Keeps only the known public fields (drops _id, timestamps and anything unexpected) and fills the gaps.
@@ -42,6 +46,11 @@ function normalizeSettings(value: Partial<WebsiteSettings> | null | undefined): 
   for (const key of Object.keys(LOGO_DIMENSION_RULES) as Array<keyof typeof LOGO_DIMENSION_RULES>) {
     const incoming = value?.[key];
     const { min, max } = LOGO_DIMENSION_RULES[key];
+    if (typeof incoming === "number" && Number.isInteger(incoming) && incoming >= min && incoming <= max) result[key] = incoming;
+  }
+  for (const key of Object.keys(LOGO_POSITION_RULES) as Array<keyof typeof LOGO_POSITION_RULES>) {
+    const incoming = value?.[key];
+    const { min, max } = LOGO_POSITION_RULES[key];
     if (typeof incoming === "number" && Number.isInteger(incoming) && incoming >= min && incoming <= max) result[key] = incoming;
   }
   if (value?.logoObjectFit === "contain" || value?.logoObjectFit === "cover") result.logoObjectFit = value.logoObjectFit;
@@ -129,6 +138,14 @@ export function parseSettingsInput(payload: Record<string, unknown>): SettingsIn
       return { ok: false, message: `${label} must be a whole number from ${min} to ${max} pixels.` };
     }
     value[key] = raw;
+  }
+
+  if ("logoHorizontalPosition" in payload) {
+    const raw = payload.logoHorizontalPosition;
+    if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 0 || raw > 50) {
+      return { ok: false, message: "Horizontal logo position must be a whole number from 0 to 50 percent." };
+    }
+    value.logoHorizontalPosition = raw;
   }
 
   if ("logoObjectFit" in payload) {

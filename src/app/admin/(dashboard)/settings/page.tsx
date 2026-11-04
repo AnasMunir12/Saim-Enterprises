@@ -15,8 +15,9 @@ const emptySettings: WebsiteSettings = {
   logo: "",
   logoDesktopWidth: 220,
   logoMobileWidth: 160,
-  logoMaxHeight: 48,
+  logoMaxHeight: 56,
   logoObjectFit: "contain",
+  logoHorizontalPosition: 0,
   favicon: "",
   contactEmail: "",
   businessOrderEmail: "",
@@ -42,7 +43,7 @@ function LogoPreview({ src, width, height, fit, label }: { src: string; width: n
       <div className="mt-2 flex min-h-20 items-center justify-center overflow-hidden rounded-xl border border-stone-200 bg-stone-50 p-2">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- Logo previews use stored Cloudinary URLs.
-          <img src={src} alt={`${label} preview`} style={{ width: `${width}px`, height: `${height}px`, objectFit: fit, maxWidth: "100%" }} />
+          <img src={src} alt={`${label} preview`} style={{ width: "auto", height: "auto", maxWidth: `${width}px`, maxHeight: `${height}px`, objectFit: fit }} />
         ) : (
           <span className="text-xl font-semibold tracking-tight text-stone-800">saim <span className="text-xs font-medium uppercase tracking-[0.2em]">enterprises</span></span>
         )}
@@ -175,8 +176,8 @@ export default function SettingsPage() {
               <Field label="Mobile logo width" htmlFor="s-logo-mobile" hint="48–240 px">
                 <input id="s-logo-mobile" type="number" min={48} max={240} step={1} inputMode="numeric" value={settings.logoMobileWidth} onChange={(event) => { setSaved(false); setSettings((current) => ({ ...current, logoMobileWidth: Number(event.target.value) })); }} className={inputCls} />
               </Field>
-              <Field label="Logo maximum height" htmlFor="s-logo-height" hint="24–56 px">
-                <input id="s-logo-height" type="number" min={24} max={56} step={1} inputMode="numeric" value={settings.logoMaxHeight} onChange={(event) => { setSaved(false); setSettings((current) => ({ ...current, logoMaxHeight: Number(event.target.value) })); }} className={inputCls} />
+              <Field label="Logo maximum height" htmlFor="s-logo-height" hint="24–96 px">
+                <input id="s-logo-height" type="number" min={24} max={96} step={1} inputMode="numeric" value={settings.logoMaxHeight} onChange={(event) => { setSaved(false); setSettings((current) => ({ ...current, logoMaxHeight: Number(event.target.value) })); }} className={inputCls} />
               </Field>
               <Field label="Image fit" htmlFor="s-logo-fit">
                 <select id="s-logo-fit" value={settings.logoObjectFit} onChange={(event) => { setSaved(false); setSettings((current) => ({ ...current, logoObjectFit: event.target.value === "cover" ? "cover" : "contain" })); }} className={inputCls}>
@@ -185,12 +186,29 @@ export default function SettingsPage() {
                 </select>
               </Field>
             </div>
+            <div className="mt-5">
+              <Field label="Horizontal logo position" htmlFor="s-logo-horizontal-position" hint="0–50% of the navbar's available content width">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="s-logo-horizontal-position"
+                    type="range"
+                    min={0}
+                    max={50}
+                    step={1}
+                    value={settings.logoHorizontalPosition}
+                    onChange={(event) => { setSaved(false); setSettings((current) => ({ ...current, logoHorizontalPosition: Number(event.target.value) })); }}
+                    className="min-w-0 flex-1"
+                  />
+                  <output htmlFor="s-logo-horizontal-position" className="w-12 text-right text-sm font-medium tabular-nums text-stone-700">{settings.logoHorizontalPosition}%</output>
+                </div>
+              </Field>
+            </div>
             <button
               type="button"
               className={`${secondaryBtn} mt-4`}
               onClick={() => {
                 setSaved(false);
-                setSettings((current) => ({ ...current, logoDesktopWidth: 220, logoMobileWidth: 160, logoMaxHeight: 48, logoObjectFit: "contain" }));
+                setSettings((current) => ({ ...current, logoDesktopWidth: 220, logoMobileWidth: 160, logoMaxHeight: 56, logoObjectFit: "contain" }));
               }}
             >
               Reset logo size

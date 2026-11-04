@@ -3,7 +3,7 @@
 import { Heart, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Wordmark } from "@/components/layout/Wordmark";
 import { useStore } from "@/components/StoreProvider";
 import { navigationLinks } from "@/lib/homeData";
@@ -13,7 +13,8 @@ export function Header() {
   // The menu is "open for this page": navigating anywhere closes it without an effect.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const menuOpen = openOn === pathname;
-  const { cartCount, wishlist, user, openCart } = useStore();
+  const headerRef = useRef<HTMLElement>(null);
+  const { cartCount, wishlist, user, openCart, settings } = useStore();
   const accountHref = !user ? "/login" : user.role === "admin" ? "/admin/dashboard" : "/account";
   const accountLabel = !user ? "Sign in" : user.role === "admin" ? "Admin dashboard" : "My account";
 
@@ -26,8 +27,26 @@ export function Header() {
     return () => window.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const updateLogoPosition = () => {
+      const styles = window.getComputedStyle(header);
+      const horizontalPadding = Number.parseFloat(styles.paddingLeft) + Number.parseFloat(styles.paddingRight);
+      const availableWidth = Math.max(0, header.clientWidth - horizontalPadding);
+      const position = settings?.logoHorizontalPosition ?? 0;
+      header.style.setProperty("--logo-horizontal-offset", `${availableWidth * position / 100}px`);
+    };
+
+    updateLogoPosition();
+    const observer = new ResizeObserver(updateLogoPosition);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [settings?.logoHorizontalPosition]);
+
   return (
-    <header className="site-header">
+    <header ref={headerRef} className="site-header">
       <button
         type="button"
         className="icon-btn mobile-menu"
@@ -39,7 +58,10 @@ export function Header() {
         {menuOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      <Wordmark />
+      <div className="header-brand">
+        <Wordmark />
+        {/* eslint-disable-next-line @next/next/no-img-element -- Bundled brand image is a local static asset. */}
+      </div>
 
       <nav id="main-nav" className={`main-nav${menuOpen ? " nav-open" : ""}`} aria-label="Main navigation">
         {navigationLinks.map(({ href, label }) => {

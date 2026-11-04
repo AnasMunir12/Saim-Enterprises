@@ -31,6 +31,7 @@ export type SiteSettings = {
   logoMobileWidth: number;
   logoMaxHeight: number;
   logoObjectFit: "contain" | "cover";
+  logoHorizontalPosition: number;
   contactEmail: string;
   phone: string;
   whatsapp: string;
@@ -47,8 +48,9 @@ function toSiteSettings(data: Partial<SiteSettings>): SiteSettings {
     logo: data.logo ?? "",
     logoDesktopWidth: typeof data.logoDesktopWidth === "number" && Number.isInteger(data.logoDesktopWidth) && data.logoDesktopWidth >= 64 && data.logoDesktopWidth <= 320 ? data.logoDesktopWidth : 220,
     logoMobileWidth: typeof data.logoMobileWidth === "number" && Number.isInteger(data.logoMobileWidth) && data.logoMobileWidth >= 48 && data.logoMobileWidth <= 240 ? data.logoMobileWidth : 160,
-    logoMaxHeight: typeof data.logoMaxHeight === "number" && Number.isInteger(data.logoMaxHeight) && data.logoMaxHeight >= 24 && data.logoMaxHeight <= 56 ? data.logoMaxHeight : 48,
+    logoMaxHeight: typeof data.logoMaxHeight === "number" && Number.isInteger(data.logoMaxHeight) && data.logoMaxHeight >= 24 && data.logoMaxHeight <= 96 ? data.logoMaxHeight : 56,
     logoObjectFit: data.logoObjectFit === "cover" ? "cover" : "contain",
+    logoHorizontalPosition: typeof data.logoHorizontalPosition === "number" && Number.isInteger(data.logoHorizontalPosition) && data.logoHorizontalPosition >= 0 && data.logoHorizontalPosition <= 50 ? data.logoHorizontalPosition : 0,
     contactEmail: data.contactEmail ?? "",
     phone: data.phone ?? "",
     whatsapp: data.whatsapp ?? "",

@@ -56,7 +56,7 @@ export async function uploadImage(buffer: Buffer): Promise<CloudinaryImageUpload
 
         const secureUrl = result.secure_url.replace(
           "/image/upload/",
-          "/image/upload/c_limit,w_2000,f_auto,q_auto/",
+          "/image/upload/c_limit,w_2000,h_2000,f_auto,q_auto/",
         );
         if (secureUrl === result.secure_url) {
           reject(new Error("Cloudinary returned an unexpected image URL."));

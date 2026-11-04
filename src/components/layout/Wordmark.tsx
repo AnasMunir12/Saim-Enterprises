@@ -14,7 +14,7 @@ export function Wordmark({ className = "" }: { className?: string }) {
   const imageStyle: LogoStyle = {
     "--logo-mobile-width": `${settings?.logoMobileWidth ?? 160}px`,
     "--logo-desktop-width": `${settings?.logoDesktopWidth ?? 220}px`,
-    "--logo-max-height": `${settings?.logoMaxHeight ?? 48}px`,
+    "--logo-max-height": `${settings?.logoMaxHeight ?? 56}px`,
     "--logo-object-fit": settings?.logoObjectFit ?? "contain",
   };
 
