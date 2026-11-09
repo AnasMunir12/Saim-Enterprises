@@ -1,4 +1,5 @@
 import { adminRoute, ApiError, ok, readJsonObject } from "@/lib/api";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { SECTION_SPEC, editableKey, parseSectionItems, readResolvedSection, upsertSection } from "@/lib/homepage-api";
 import { builtinByKey, HOMEPAGE_CATEGORY_LIMIT, isCustomKey } from "@/lib/homepage-sections";
 import { parseFields } from "@/lib/validate";
@@ -12,6 +13,7 @@ type Params = { id: string };
 // Edits wording or visibility. A built-in section is saved the first time it is changed.
 export const PUT = adminRoute<Params>("update the homepage section", async ({ request, params }) => {
   const key = await editableKey(params.id);
+  const previous = await HomepageSection.findOne({ key }).select("image items.image").lean();
   const payload = await readJsonObject(request);
   const values: Record<string, unknown> = parseFields(payload, SECTION_SPEC, { partial: true });
   if (isCustomKey(key) && "title" in values && !values.title) throw new ApiError("Heading is required.");
@@ -29,6 +31,10 @@ export const PUT = adminRoute<Params>("update the homepage section", async ({ re
   const itemsConfig = builtinByKey(key)?.items;
   if (itemsConfig && "items" in payload) values.items = parseSectionItems(itemsConfig, payload.items);
   await upsertSection(key, values);
+  await cleanupUnreferencedCloudinaryImages([
+    previous?.image,
+    ...(previous?.items ?? []).map((item: { image?: string }) => item.image),
+  ]);
   return ok(await readResolvedSection(key));
 });
 
@@ -36,9 +42,18 @@ export const PUT = adminRoute<Params>("update the homepage section", async ({ re
 export const DELETE = adminRoute<Params>("remove the homepage section", async ({ params }) => {
   const key = await editableKey(params.id);
   if (isCustomKey(key)) {
-    await HomepageSection.deleteOne({ key });
+    const deleted = await HomepageSection.findOneAndDelete({ key });
+    await cleanupUnreferencedCloudinaryImages([
+      deleted?.image,
+      ...(deleted?.items ?? []).map((item: { image?: string }) => item.image),
+    ]);
     return ok({ message: "Block deleted." });
   }
+  const previous = await HomepageSection.findOne({ key }).select("image items.image").lean();
   await HomepageSection.updateOne({ key }, { $set: { title: "", subtitle: "", description: "", image: "", buttonText: "", buttonLink: "", items: [] } });
+  await cleanupUnreferencedCloudinaryImages([
+    previous?.image,
+    ...(previous?.items ?? []).map((item: { image?: string }) => item.image),
+  ]);
   return ok({ message: "Section restored to its default wording." });
 });

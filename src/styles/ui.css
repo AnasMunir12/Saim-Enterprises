@@ -612,3 +612,15 @@ textarea.field__control {
     justify-content: center;
     width: 100%;
 }
+
+img[data-image-loading="true"] {
+    animation: shimmer 1.4s linear infinite;
+    background: linear-gradient(90deg, #eee8df 25%, #f8f5f0 45%, #eee8df 65%);
+    background-size: 200% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    img[data-image-loading="true"] {
+        animation: none;
+    }
+}

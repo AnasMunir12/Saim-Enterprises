@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { connectDB } from "@/lib/mongodb";
 import { getSettings, parseSettingsInput, updateSettings } from "@/lib/settings";
 
@@ -40,7 +41,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: input.message }, { status: 400 });
     }
 
+    const current = await getSettings();
     const settings = await updateSettings(input.value);
+    await cleanupUnreferencedCloudinaryImages([current.logo, current.favicon]);
     return NextResponse.json(settings, { headers: NO_STORE });
   } catch (error) {
     console.error("Settings update failed:", error);

@@ -7,6 +7,7 @@ import {
   buildGoogleAuthUrl,
   encodeOAuthCookie,
   getBaseUrl,
+  getGoogleRedirectUri,
   isGoogleConfigured,
   randomToken,
 } from "@/lib/google-oauth";
@@ -24,7 +25,15 @@ export async function GET(request: Request) {
   // Remember where the shopper was (same-site paths only) so they land back there after signing in.
   const next = safeNextPath(new URL(request.url).searchParams.get("next")) ?? undefined;
   const flow = { state: randomToken(), verifier: randomToken(48), nonce: randomToken(), next };
-  const response = NextResponse.redirect(buildGoogleAuthUrl(process.env.GOOGLE_CLIENT_ID as string, flow));
+  const authorizationUrl = buildGoogleAuthUrl(process.env.GOOGLE_CLIENT_ID as string, flow);
+  if (process.env.NODE_ENV === "development") {
+    console.info("[google-oauth] Redirect diagnostic", {
+      applicationBaseUrl: base,
+      generatedRedirectUri: getGoogleRedirectUri(),
+      authorizationRedirectUri: new URL(authorizationUrl).searchParams.get("redirect_uri"),
+    });
+  }
+  const response = NextResponse.redirect(authorizationUrl);
 
   response.cookies.set(GOOGLE_OAUTH_COOKIE, encodeOAuthCookie(flow), {
     httpOnly: true,

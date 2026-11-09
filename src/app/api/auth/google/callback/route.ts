@@ -5,13 +5,12 @@ import { postLoginPath, resolveRole, safeNextPath } from "@/lib/auth-redirect";
 import {
   GOOGLE_OAUTH_COOKIE,
   GOOGLE_TOKEN_ENDPOINT,
-  decodeJwtPayload,
   decodeOAuthCookie,
   getBaseUrl,
   getGoogleRedirectUri,
   isGoogleConfigured,
   safeEqual,
-  validateIdTokenClaims,
+  verifyGoogleIdToken,
 } from "@/lib/google-oauth";
 import { isSuspended } from "@/lib/customers";
 import { connectDB } from "@/lib/mongodb";
@@ -73,11 +72,8 @@ export async function GET(request: Request) {
     }
 
     const tokens = (await tokenResponse.json()) as { id_token?: string };
-    const result = validateIdTokenClaims(
-      tokens.id_token ? decodeJwtPayload(tokens.id_token) : null,
-      process.env.GOOGLE_CLIENT_ID as string,
-      flow.nonce,
-    );
+    if (!tokens.id_token) return fail("google_failed");
+    const result = await verifyGoogleIdToken(tokens.id_token, process.env.GOOGLE_CLIENT_ID as string, flow.nonce);
 
     if (!result.ok) {
       return fail(result.error);
@@ -87,7 +83,7 @@ export async function GET(request: Request) {
 
     await connectDB();
 
-    // 1) Known Google account. 2) Existing account with the same (Google-verified) email: link it. 3) New customer.
+    // Use the matching Google account, create a new customer, or require password sign-in for an existing account.
     let user = await User.findOne({ googleId });
 
     if (!user) {
@@ -98,6 +94,9 @@ export async function GET(request: Request) {
           // Email already linked to a different Google identity: never overwrite.
           return fail("google_failed");
         }
+        if (user.passwordHash) {
+          return fail("google_account_link_required");
+        }
         user.googleId = googleId;
         if (!user.avatar && avatar) user.avatar = avatar;
         await user.save();
@@ -106,14 +105,18 @@ export async function GET(request: Request) {
           user = await User.create({ name, email, googleId, avatar, role: "customer" });
         } catch (error) {
           if (error && typeof error === "object" && "code" in error && error.code === 11000) {
-            // Concurrent first sign-in created the user already.
-            user = await User.findOne({ $or: [{ googleId }, { email }] });
+            // Only reuse a concurrently-created account for this exact Google identity.
+            user = await User.findOne({ googleId });
           } else {
             throw error;
           }
         }
         if (!user) return fail("google_failed");
       }
+    }
+
+    if (user.googleId !== googleId) {
+      return fail("google_account_link_required");
     }
 
     if (isSuspended(user)) {

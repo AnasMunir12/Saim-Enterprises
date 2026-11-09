@@ -1,5 +1,7 @@
 import { Category } from "@/models/Category";
+import { ContentList } from "@/models/ContentList";
 import { Collection } from "@/models/Collection";
+import { BrandHero } from "@/models/BrandHero";
 import { HeroSlide } from "@/models/HeroSlide";
 import { HomepageSection } from "@/models/HomepageSection";
 import { Order } from "@/models/Order";
@@ -15,8 +17,10 @@ export async function isCloudinaryImageReferenced(publicId: string) {
     Product.exists({ $or: [{ image: imageValue }, { images: imageValue }, { thumbnail: imageValue }] }),
     Category.exists({ image: imageValue }),
     Collection.exists({ image: imageValue }),
+    BrandHero.exists({ image: imageValue }),
     HeroSlide.exists({ image: imageValue }),
     HomepageSection.exists({ $or: [{ image: imageValue }, { "items.image": imageValue }] }),
+    ContentList.exists({ "items.image": imageValue }),
     Order.exists({ "items.image": imageValue }),
     Testimonial.exists({ image: imageValue }),
     Settings.exists({ $or: [{ logo: imageValue }, { favicon: imageValue }] }),

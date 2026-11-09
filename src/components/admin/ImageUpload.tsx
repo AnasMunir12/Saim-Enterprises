@@ -6,6 +6,21 @@ import { MAX_IMAGE_FILE_SIZE } from "@/lib/image-file";
 
 const SUPPORTED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
+function isManagedCloudinaryImage(value: string) {
+  try {
+    const url = new URL(value);
+    const segments = url.pathname.split("/").filter(Boolean);
+    return url.protocol === "https:"
+      && url.hostname === "res.cloudinary.com"
+      && segments[1] === "image"
+      && segments[2] === "upload"
+      && segments.includes("saim-enterprises")
+      && segments.some((segment) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]+$/i.test(segment));
+  } catch {
+    return false;
+  }
+}
+
 type ImageUploadProps = {
   value: string;
   onChange: (value: string) => void;
@@ -20,6 +35,22 @@ export function ImageUpload({ value, onChange, label = "Image", className = "", 
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
+
+  async function deleteIfUnreferenced(url: string) {
+    if (!isManagedCloudinaryImage(url)) return;
+    try {
+      const response = await fetch("/api/uploads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (response.ok || response.status === 409) return;
+      const data = (await response.json()) as { message?: string };
+      setError(data.message ?? "Image was removed from this form, but Cloudinary cleanup failed.");
+    } catch {
+      setError("Image was removed from this form, but Cloudinary cleanup could not be confirmed.");
+    }
+  }
 
   async function upload(file: File) {
     setError("");
@@ -43,6 +74,7 @@ export function ImageUpload({ value, onChange, label = "Image", className = "", 
         setError(data.message ?? "Unable to upload image.");
         return;
       }
+      if (value) void deleteIfUnreferenced(value);
       onChange(url);
     } catch {
       setError("Unable to upload image. Please try again.");
@@ -58,6 +90,7 @@ export function ImageUpload({ value, onChange, label = "Image", className = "", 
 
   // Only detaches the picture from the form; cancelling an edit must not delete a still-referenced image.
   function remove() {
+    if (value) void deleteIfUnreferenced(value);
     onChange("");
   }
 

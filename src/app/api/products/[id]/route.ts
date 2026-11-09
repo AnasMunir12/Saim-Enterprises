@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/lib/auth";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { connectDB } from "@/lib/mongodb";
 import { serializeRecord } from "@/lib/mongo-record";
 import { parseProductInput } from "@/lib/product-input";
@@ -51,6 +52,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!product) {
       return NextResponse.json({ message: "Product not found." }, { status: 404 });
     }
+    const previousImages = [product.image, product.thumbnail, ...(product.images ?? [])];
 
     const parsed = parseProductInput(payload, {
       price: product.price,
@@ -85,6 +87,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     await product.save();
+    await cleanupUnreferencedCloudinaryImages(previousImages);
 
     return NextResponse.json({ ...product.toObject(), id: String(product._id), _id: undefined });
   } catch (error) {
@@ -109,6 +112,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (!deleted) {
       return NextResponse.json({ message: "Product not found." }, { status: 404 });
     }
+    await cleanupUnreferencedCloudinaryImages([deleted.image, deleted.thumbnail, ...(deleted.images ?? [])]);
 
     return NextResponse.json({ message: "Product deleted." });
   } catch (error) {

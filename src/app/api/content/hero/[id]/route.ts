@@ -1,4 +1,5 @@
 import { adminRoute, ApiError, ok, presentDoc, readJsonObject } from "@/lib/api";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { HERO_SPEC, withHeroDefaults } from "@/lib/hero-input";
 import { parseFields } from "@/lib/validate";
 import { HeroSlide } from "@/models/HeroSlide";
@@ -9,13 +10,16 @@ type Params = { id: string };
 
 export const PUT = adminRoute<Params>("update the hero slide", async ({ request, params }) => {
   const values = withHeroDefaults(parseFields(await readJsonObject(request), HERO_SPEC, { partial: true }));
+  const previous = await HeroSlide.findById(params.id).select("image").lean();
   const slide = await HeroSlide.findByIdAndUpdate(params.id, { $set: values }, { returnDocument: "after", runValidators: true });
   if (!slide) throw new ApiError("Slide not found.", 404);
+  await cleanupUnreferencedCloudinaryImages([previous?.image]);
   return ok(presentDoc(slide));
 });
 
 export const DELETE = adminRoute<Params>("delete the hero slide", async ({ params }) => {
   const deleted = await HeroSlide.findByIdAndDelete(params.id);
   if (!deleted) throw new ApiError("Slide not found.", 404);
+  await cleanupUnreferencedCloudinaryImages([deleted.image]);
   return ok({ message: "Slide deleted." });
 });

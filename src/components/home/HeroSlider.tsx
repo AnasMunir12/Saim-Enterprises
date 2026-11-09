@@ -1,32 +1,30 @@
-"use client";
-
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { ButtonLink } from "@/components/ui/Button";
-import { Skeleton, SkeletonLine } from "@/components/ui/Skeleton";
+import { StoreImage } from "@/components/ui/StoreImage";
 
 type HeroSlide = {
   id?: string;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   image: string;
   primaryButtonText?: string;
   primaryButtonUrl?: string;
   secondaryButtonText?: string;
   secondaryButtonUrl?: string;
   active?: boolean;
+  features?: Array<{ title?: string; description?: string; icon?: string }>;
 };
 
-const AUTOPLAY_MS = 6000;
+const AUTOPLAY_MS = 3000;
 
 export function HeroSlider() {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [active, setActive] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -44,113 +42,68 @@ export function HeroSlider() {
     };
   }, []);
 
-  // Autoplay stops while the visitor hovers or focuses the hero, and never runs for reduced-motion visitors.
   useEffect(() => {
-    if (slides.length < 2 || paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setTimeout(() => setActive((current) => (current + 1) % slides.length), AUTOPLAY_MS);
+    if (slides.length < 2) return;
+    const timer = window.setTimeout(() => {
+      setActive((current) => (current + 1) % slides.length);
+    }, AUTOPLAY_MS);
     return () => window.clearTimeout(timer);
-  }, [active, slides.length, paused]);
+  }, [active, slides.length]);
 
-  const go = (step: number) => setActive((current) => (current + step + slides.length) % slides.length);
   const slide = slides[active];
 
   if (!slide) {
-    if (!loaded) {
-      return (
-        <section className="hero hero--loading" aria-busy="true" aria-label="Loading featured collection">
-          <Skeleton className="hero__media" />
-          <div className="hero__copy"><SkeletonLine wide /><SkeletonLine /></div>
-        </section>
-      );
-    }
-    // No slides published: a plain brand hero keeps the page useful.
+    if (!loaded) return null;
     return (
-      <section className="hero hero--plain">
-        <div className="hero__copy">
-          <p className="eyebrow">Saim Enterprises</p>
-          <h4 className="hero__title">Objects with <em>a little soul.</em></h4>
-          <p className="hero__lead">Handcrafted lighting, décor and custom pieces, made in our Lahore studio.</p>
-          <div className="hero__actions">
-            <ButtonLink href="/catalog" size="lg">Shop the collection <ArrowRight size={16} aria-hidden="true" /></ButtonLink>
-            <ArrowLink href="/contact">Start a custom piece</ArrowLink>
-          </div>
-        </div>
+      <section className="hero hero--static" aria-label="Saim Enterprises handcrafted décor">
+        <StoreImage src="/saim-static-hero-banner.png" alt="Saim Enterprises handcrafted wooden décor and gifts" eager fetchPriority="high" />
+        <a className="hero__reference-action" href="/catalog">
+          Explore Our Collection <ArrowRight size={16} aria-hidden="true" />
+        </a>
       </section>
     );
   }
 
   return (
-    <MotionConfig reducedMotion="user">
-      <section
+    <AnimatePresence mode="wait">
+      <motion.section
+        key={slide.id ?? slide.image ?? active}
         className="hero"
-        aria-roledescription="carousel"
         aria-label="Featured collections"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocus={() => setPaused(true)}
-        onBlur={() => setPaused(false)}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            go(-1);
-          } else if (event.key === "ArrowRight") {
-            event.preventDefault();
-            go(1);
-          }
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.45, ease: "easeInOut" }}
       >
         <div className="hero__copy">
-          <AnimatePresence mode="sync">
-            <motion.div
-              key={slide.title}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              aria-live="polite"
-            >
-              <p className="eyebrow">{slide.eyebrow}</p>
-              <h3 className="hero__title">{slide.title}</h3>
-              <p className="hero__lead">{slide.description}</p>
-              <div className="hero__actions">
-                <ButtonLink href={slide.primaryButtonUrl || "/catalog"} size="lg">
-                  {slide.primaryButtonText || "Explore collection"} <ArrowRight size={16} aria-hidden="true" />
-                </ButtonLink>
-                <ArrowLink href={slide.secondaryButtonUrl || "/contact"}>{slide.secondaryButtonText || "Start a custom piece"}</ArrowLink>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="hero__media">
-          <AnimatePresence mode="popLayout">
-            <motion.img
-              key={slide.image}
-              src={slide.image}
-              alt={slide.title}
-              fetchPriority={active === 0 ? "high" : undefined}
-              initial={{ opacity: 0, scale: 1.03 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
-            />
-          </AnimatePresence>
-
-          {slides.length > 1 ? (
-            <div className="hero__controls">
-              <button type="button" className="icon-btn hero__arrow hero__arrow--previous" onClick={() => go(-1)} aria-label="Previous slide"><ChevronLeft size={20} /></button>
-              <div className="hero__dots" role="group" aria-label="Choose a slide">
-                {slides.map((item, index) => (
-                  <button type="button" className="hero__dot" key={item.id ?? item.title} onClick={() => setActive(index)} aria-label={`Show slide ${index + 1} of ${slides.length}`} aria-current={index === active}>
-                    <i />
-                  </button>
+          <div>
+            {slide.eyebrow ? <p className="eyebrow">{slide.eyebrow}</p> : null}
+            <h3 className="hero__title">{slide.title}</h3>
+            {slide.description ? <p className="hero__lead">{slide.description}</p> : null}
+            {slide.features?.length ? (
+              <div className="hero__features">
+                {slide.features.slice(0, 3).map((feature, index) => (
+                  <div className="hero__feature" key={`${feature.title}-${index}`}>
+                    <strong>{feature.title}</strong>
+                    {feature.description ? <small>{feature.description}</small> : null}
+                  </div>
                 ))}
               </div>
-              <button type="button" className="icon-btn hero__arrow hero__arrow--next" onClick={() => go(1)} aria-label="Next slide"><ChevronRight size={20} /></button>
+            ) : null}
+            <div className="hero__actions">
+              <ButtonLink href={slide.primaryButtonUrl || "/catalog"} size="lg">
+                {slide.primaryButtonText || "Explore collection"} <ArrowRight size={16} aria-hidden="true" />
+              </ButtonLink>
+              {slide.secondaryButtonText && slide.secondaryButtonUrl ? (
+                <ArrowLink href={slide.secondaryButtonUrl}>{slide.secondaryButtonText}</ArrowLink>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
-      </section>
-    </MotionConfig>
+        <div className="hero__media">
+          <StoreImage src={slide.image} alt={slide.title} sizes="(min-width: 900px) 50vw, 100vw" eager fetchPriority={active === 0 ? "high" : undefined} />
+        </div>
+      </motion.section>
+    </AnimatePresence>
   );
 }

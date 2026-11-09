@@ -1,5 +1,6 @@
 import { adminRoute, ApiError, ok, presentDoc, readJsonObject } from "@/lib/api";
 import { COLLECTION_SPEC } from "@/lib/catalog-input";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { uniqueSlug } from "@/lib/crud";
 import { parseFields } from "@/lib/validate";
 import { Collection } from "@/models/Collection";
@@ -15,8 +16,10 @@ export const PUT = adminRoute<Params>(
     const values = parseFields(await readJsonObject(request), COLLECTION_SPEC, { partial: true });
     const update: Record<string, unknown> = { ...values };
     if (typeof values.name === "string") update.slug = await uniqueSlug(Collection, values.name, "collection", params.id);
+    const previous = await Collection.findById(params.id).select("image").lean();
     const collection = await Collection.findByIdAndUpdate(params.id, { $set: update }, { returnDocument: "after", runValidators: true });
     if (!collection) throw new ApiError("Collection not found.", 404);
+    await cleanupUnreferencedCloudinaryImages([previous?.image]);
     return ok(presentDoc(collection));
   },
   { duplicateMessage: "A collection with this name already exists." },
@@ -27,5 +30,6 @@ export const DELETE = adminRoute<Params>("delete the collection", async ({ param
   const deleted = await Collection.findByIdAndDelete(params.id);
   if (!deleted) throw new ApiError("Collection not found.", 404);
   await Product.updateMany({ collectionId: params.id }, { $unset: { collectionId: "" } });
+  await cleanupUnreferencedCloudinaryImages([deleted.image]);
   return ok({ message: "Collection deleted." });
 });

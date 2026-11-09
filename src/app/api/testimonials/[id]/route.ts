@@ -1,4 +1,5 @@
 import { adminRoute, ApiError, ok, presentDoc, readJsonObject } from "@/lib/api";
+import { cleanupUnreferencedCloudinaryImages } from "@/lib/cleanup-cloudinary-images";
 import { TESTIMONIAL_SPEC } from "@/lib/testimonial-input";
 import { parseFields } from "@/lib/validate";
 import { Testimonial } from "@/models/Testimonial";
@@ -10,15 +11,18 @@ type Params = { id: string };
 export const PUT = adminRoute<Params>("update the testimonial", async ({ request, params }) => {
   const body = await readJsonObject(request);
   const values = parseFields(body, TESTIMONIAL_SPEC, { partial: true });
+  const previous = await Testimonial.findById(params.id).select("image").lean();
   // `rating: null` removes the stars from this testimonial.
   const update = body.rating === null ? { $set: values, $unset: { rating: "" } } : { $set: values };
   const testimonial = await Testimonial.findByIdAndUpdate(params.id, update, { returnDocument: "after", runValidators: true });
   if (!testimonial) throw new ApiError("Testimonial not found.", 404);
+  await cleanupUnreferencedCloudinaryImages([previous?.image]);
   return ok(presentDoc(testimonial));
 });
 
 export const DELETE = adminRoute<Params>("delete the testimonial", async ({ params }) => {
   const deleted = await Testimonial.findByIdAndDelete(params.id);
   if (!deleted) throw new ApiError("Testimonial not found.", 404);
+  await cleanupUnreferencedCloudinaryImages([deleted.image]);
   return ok({ message: "Testimonial deleted." });
 });

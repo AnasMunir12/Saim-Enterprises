@@ -5,6 +5,7 @@ const GOOGLE_ERRORS: Record<string, string> = {
   google_state: "Your Google sign-in session expired or was invalid. Please try again.",
   google_unverified: "Your Google email address isn't verified, so we can't sign you in with it.",
   google_suspended: "This account has been suspended. Please contact Saim Enterprises for help.",
+  google_account_link_required: "This email already has an account. Sign in with your password first; Google sign-in cannot be linked automatically.",
   google_failed: "We couldn't sign you in with Google. Please try again.",
 };
 

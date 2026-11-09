@@ -67,7 +67,7 @@ Customers can sign in or sign up with "Continue with Google". Until you add cred
    NEXTAUTH_URL=http://localhost:3000
    ```
 
-   `NEXTAUTH_URL` must match the host in the redirect URI exactly (scheme, host and port). In production set it to your public `https://` URL.
+   `NEXTAUTH_URL` must be the site origin and match the redirect URI's scheme, host, and port exactly. In Vercel Production, set it to your custom domain's `https://` origin (for example `https://shop.example.com`), never to localhost. Production requires this setting and HTTPS.
 8. Restart `npm run dev` (environment variables are read at startup) and click **Continue with Google** on `/login`.
 
-Behaviour notes: only Google accounts with a verified email can sign in. If a Google email matches an existing account, Google is linked to that account; otherwise a new customer account is created without a password. Google never grants admin access to a new account.
+Behaviour notes: the server verifies Google's ID-token signature and claims before accepting a sign-in. Only Google accounts with a verified email can sign in. A new customer account is created when the email is unused; an existing account already linked to the same Google identity can sign in as usual. Google is not automatically linked to an existing password account: sign in with that account's password instead, so an unverified password signup cannot take over an account. Google never grants admin access to a new account.
