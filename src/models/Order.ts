@@ -12,7 +12,8 @@ export interface IOrderItem {
 
 export interface IOrder {
   _id: string;
-  userId: string;
+  userId?: string;
+  checkoutRequestId?: string;
   customerName: string;
   customerEmail: string;
   phone?: string;
@@ -41,7 +42,8 @@ const OrderItemSchema = new Schema<IOrderItem>(
 const OrderSchema = new Schema<IOrder>(
   {
     _id: { type: String },
-    userId: { type: String, required: true, index: true },
+    userId: { type: String, index: true },
+    checkoutRequestId: { type: String },
     customerName: { type: String, required: true },
     customerEmail: { type: String, required: true },
     phone: { type: String },
@@ -59,5 +61,12 @@ const OrderSchema = new Schema<IOrder>(
   },
   { timestamps: true },
 );
+
+OrderSchema.index({ checkoutRequestId: 1 }, { unique: true, sparse: true });
+OrderSchema.index({ customerEmail: 1, status: 1 });
+
+if (process.env.NODE_ENV !== "production" && mongoose.models.Order) {
+  mongoose.deleteModel("Order");
+}
 
 export const Order = mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);

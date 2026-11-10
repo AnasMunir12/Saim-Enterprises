@@ -70,10 +70,18 @@ export type StoreUser = {
   email: string;
   role: "admin" | "customer";
   avatar?: string | null;
+  checkoutDetails?: {
+    fullName?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    postalCode?: string;
+  } | null;
 };
 
 type StoreValue = {
   cart: CartLine[];
+  cartReady: boolean;
   settings: SiteSettings | null;
   syncSettings: (settings: Partial<SiteSettings>) => void;
   /** Digits-only WhatsApp number (admin setting, normalised, with a built-in fallback). */
@@ -89,6 +97,7 @@ type StoreValue = {
   wishlist: string[];
   user: StoreUser | null;
   userLoaded: boolean;
+  setCheckoutDetails: (details: StoreUser["checkoutDetails"]) => void;
   cartCount: number;
   subtotal: number;
   addToCart: (product: Product, quantity?: number) => AddResult;
@@ -150,6 +159,9 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+  const setCheckoutDetails = useCallback((checkoutDetails: StoreUser["checkoutDetails"]) => {
+    setUser((current) => current ? { ...current, checkoutDetails } : current);
+  }, []);
   useEffect(() => {
     cartRef.current = cart;
   }, [cart]);
@@ -395,6 +407,7 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
     const purchasable = cart.filter((line) => !line.unavailable);
     return {
       cart,
+      cartReady,
       settings,
       syncSettings,
       whatsappNumber: normalizeWhatsapp(settings?.whatsapp),
@@ -407,6 +420,7 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
       wishlist,
       user,
       userLoaded,
+      setCheckoutDetails,
       cartCount: purchasable.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: purchasable.reduce((sum, item) => sum + item.price * item.quantity, 0),
       addToCart,
@@ -425,7 +439,7 @@ export function StoreProvider({ children, initialSettings = null }: { children: 
       clearCart: () => setCart([]),
       signOut,
     };
-  }, [cart, settings, syncSettings, cartOpen, cartIntent, openCart, closeCart, refreshCart, notify, wishlist, user, userLoaded, addToCart, toggleWishlist, signOut]);
+  }, [cart, cartReady, settings, syncSettings, cartOpen, cartIntent, openCart, closeCart, refreshCart, notify, wishlist, user, userLoaded, setCheckoutDetails, addToCart, toggleWishlist, signOut]);
 
   return (
     <StoreContext.Provider value={value}>

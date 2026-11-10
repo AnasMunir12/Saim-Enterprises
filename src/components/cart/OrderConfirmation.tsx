@@ -5,8 +5,9 @@ import { shortId } from "@/lib/format";
 import type { OrderView } from "@/lib/orders";
 import { formatPrice } from "@/lib/products";
 
-export function OrderConfirmation({ order, email, onClose }: { order: OrderView; email?: string; onClose: () => void }) {
+export function OrderConfirmation({ order, email, isGuest = false, onClose }: { order: OrderView; email?: string; isGuest?: boolean; onClose: () => void }) {
   const contact = email || BUSINESS_EMAIL;
+  const trackingPath = `/track?order=${encodeURIComponent(order.id)}`;
   return (
     <div className="order-confirmation">
       <CheckCircle2 size={40} aria-hidden="true" />
@@ -27,7 +28,14 @@ export function OrderConfirmation({ order, email, onClose }: { order: OrderView;
         <li><strong>We pack and ship</strong> once it is confirmed. You can follow every step any time.</li>
       </ol>
       <p className="confirm-help">Questions about this order? <a href={`mailto:${contact}?subject=${encodeURIComponent(`Order ${shortId(order.id)}`)}`}>Email {contact}</a>.</p>
-      <ButtonLink href={`/track?order=${encodeURIComponent(order.id)}`} size="lg" block onClick={onClose}>Track this order</ButtonLink>
+      {isGuest ? (
+        <p className="confirm-help">To add this order to your dashboard, sign in with Google using the same verified email address you entered at checkout.</p>
+      ) : null}
+      {isGuest ? (
+        <ButtonLink href={`/api/auth/google?next=${encodeURIComponent(trackingPath)}`} size="lg" block>Sign in with Google to track</ButtonLink>
+      ) : (
+        <ButtonLink href={trackingPath} size="lg" block>Track this order</ButtonLink>
+      )}
       <button type="button" className="link-arrow" onClick={onClose}><span>Continue shopping</span></button>
     </div>
   );

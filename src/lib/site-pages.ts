@@ -95,9 +95,10 @@ export const SITE_PAGES = {
         [
           "We collect only what we need to run the shop:",
           "- Account details: your name, email address and a securely hashed password, or your Google profile name and email if you sign in with Google.",
-          "- Order details: your phone number, delivery address, notes and the items you order.",
+          "- Order details: your name, email address, phone number, delivery address, notes and the items you order, whether or not you create an account.",
+          "- Saved checkout details: only when you opt in, account details are stored with your profile and guest details are stored in this browser. You can remove them from checkout.",
           "- Newsletter: your email address, if you subscribe.",
-          "- Your bag and preferences are kept in your own browser.",
+          "- Your bag and preferences are kept in your own browser. We do not store payment card details.",
         ].join("\n"),
         "## How we use it",
         "We use your information to confirm and deliver orders, contact you about them, answer your messages and, if you subscribe, send occasional news. We do not sell your personal information.",

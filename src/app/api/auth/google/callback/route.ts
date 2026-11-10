@@ -14,6 +14,7 @@ import {
 } from "@/lib/google-oauth";
 import { isSuspended } from "@/lib/customers";
 import { connectDB } from "@/lib/mongodb";
+import { Order } from "@/models/Order";
 import { User } from "@/models/User";
 
 export const dynamic = "force-dynamic";
@@ -122,6 +123,12 @@ export async function GET(request: Request) {
     if (isSuspended(user)) {
       return fail("google_suspended");
     }
+
+    // Google has verified ownership of this email. Attach only guest orders with no account owner.
+    await Order.updateMany(
+      { customerEmail: email, $or: [{ userId: { $exists: false } }, { userId: null }, { userId: "" }] },
+      { $set: { userId: String(user._id) } },
+    );
 
     const role = resolveRole(user.role);
     await setSessionCookie(String(user._id), role);

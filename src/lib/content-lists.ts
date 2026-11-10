@@ -49,8 +49,8 @@ export const CONTENT_LISTS: { [K in ContentListKey]: ListDefinition<ContentListI
     max: 40,
     blank: { question: "", answer: "", active: true },
     defaults: [
-      { question: "How do I place an order?", answer: "Add pieces to your bag, sign in or create an account, and enter your phone number and delivery address. We contact you to confirm the order and arrange payment and delivery.", active: true },
-      { question: "Why do I need an account to order?", answer: "Your account lets you follow your order on the Track order page and keeps your orders together.", active: true },
+      { question: "How do I place an order?", answer: "Add pieces to your bag, check out as a guest or sign in, and enter your contact and delivery details. We contact you to confirm the order and arrange payment and delivery.", active: true },
+      { question: "Can I track a guest order?", answer: "Sign in with Google using the same verified email address you entered at checkout to add the order to your account and follow its status.", active: true },
       { question: "What does Sold out mean?", answer: "The piece has no stock right now. Use the Ask about restock link on the product page and we can tell you if and when it will return.", active: true },
       { question: "Will my order be reserved when I place it?", answer: "Items are checked for availability when you place the order and reserved once we confirm it. If something sells out in between, we will contact you.", active: true },
       { question: "Can you make something custom?", answer: "Yes. We make custom laser-cut, CNC and engraved pieces to your size and finish. Tell us your idea on the contact page and we will reply by email.", active: true },

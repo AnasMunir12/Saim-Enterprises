@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function CatalogPage() {
   return (
     <PageChrome>
-      <PageHero eyebrow="The complete collection" title={<>Handmade pieces, <em>ready to ship.</em></>} lead="Lighting, décor and furniture made in our Lahore studio. Browse freely and sign in when you are ready to order." />
+      <PageHero eyebrow="The complete collection" title={<>Handmade pieces, <em>ready to ship.</em></>} lead="Lighting, décor and furniture made in our Lahore studio. Browse freely and check out as a guest or sign in when you are ready to order." />
       <Suspense fallback={<section className="section"><ProductGridSkeleton /></section>}>
         <CatalogView />
       </Suspense>

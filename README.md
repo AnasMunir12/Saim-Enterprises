@@ -71,3 +71,7 @@ Customers can sign in or sign up with "Continue with Google". Until you add cred
 8. Restart `npm run dev` (environment variables are read at startup) and click **Continue with Google** on `/login`.
 
 Behaviour notes: the server verifies Google's ID-token signature and claims before accepting a sign-in. Only Google accounts with a verified email can sign in. A new customer account is created when the email is unused; an existing account already linked to the same Google identity can sign in as usual. Google is not automatically linked to an existing password account: sign in with that account's password instead, so an unverified password signup cannot take over an account. Google never grants admin access to a new account.
+
+## Checkout
+
+Customers can place orders as guests or while signed in. Guest orders are saved in the same order collection and appear in the admin order dashboard. A guest can add an order to their account by signing in with Google using the same verified email address entered at checkout; only unclaimed guest orders for that verified email are associated. Checkout details are saved only after opting in: signed-in customers' details are stored on their account, while guest details remain in local browser storage and can be removed from checkout.

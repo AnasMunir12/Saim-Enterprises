@@ -5,6 +5,14 @@ export type UserRole = "admin" | "customer";
 // A suspended account cannot sign in and its existing sessions stop working. Accounts without a status are active.
 export type UserStatus = "active" | "suspended";
 
+export interface ICheckoutDetails {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode?: string;
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -15,11 +23,23 @@ export interface IUser extends Document {
   suspendedAt?: Date;
   googleId?: string;
   avatar?: string;
+  checkoutDetails?: ICheckoutDetails;
   // Sessions issued before this moment are rejected (set when the password is reset).
   passwordChangedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const CheckoutDetailsSchema = new Schema<ICheckoutDetails>(
+  {
+    fullName: { type: String, trim: true, maxlength: 100 },
+    phone: { type: String, trim: true, maxlength: 20 },
+    address: { type: String, trim: true, maxlength: 500 },
+    city: { type: String, trim: true, maxlength: 100 },
+    postalCode: { type: String, trim: true, maxlength: 20 },
+  },
+  { _id: false },
+);
 
 const UserSchema = new Schema<IUser>(
   {
@@ -60,6 +80,7 @@ const UserSchema = new Schema<IUser>(
     avatar: {
       type: String,
     },
+    checkoutDetails: { type: CheckoutDetailsSchema, default: undefined },
     passwordChangedAt: {
       type: Date,
     },

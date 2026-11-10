@@ -51,7 +51,7 @@ export function BuyBox({ product }: { product: Product }) {
             {soldOut ? "Sold out" : <>Add to bag <ArrowRight size={16} aria-hidden="true" /></>}
           </Button>
         </div>
-        {!soldOut && userLoaded && !user ? <p className="field__hint">Browse freely. You will sign in or create an account when you place your order.</p> : null}
+        {!soldOut && userLoaded && !user ? <p className="field__hint">Browse freely. Check out as a guest or sign in for your account.</p> : null}
         <div className="pdp__aux">
           <WishlistButton id={product.id} name={product.name} showLabel />
           <Link href={ask}><MessageSquare size={18} aria-hidden="true" /> {soldOut ? "Ask about restock" : "Ask about this piece"}</Link>

@@ -9,6 +9,7 @@ import { toOrderView } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
 import { createId } from "@/lib/site-data";
 import { Order, type IOrderItem } from "@/models/Order";
+import { User } from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -43,29 +44,61 @@ function cleanText(value: unknown, max: number): string | null {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ message: "Please sign in to place an order." }, { status: 401, headers: NO_STORE });
-    }
 
-    let body: { items?: unknown; phone?: unknown; shippingAddress?: unknown; notes?: unknown };
+    let body: {
+      items?: unknown;
+      fullName?: unknown;
+      email?: unknown;
+      phone?: unknown;
+      address?: unknown;
+      city?: unknown;
+      postalCode?: unknown;
+      notes?: unknown;
+      saveDetails?: unknown;
+      checkoutRequestId?: unknown;
+    };
     try {
       body = (await request.json()) as typeof body;
     } catch {
       return NextResponse.json({ message: "Invalid request body." }, { status: 400 });
     }
 
+    const fullName = cleanText(body.fullName, 100);
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const phone = cleanText(body.phone, 20);
-    const shippingAddress = cleanText(body.shippingAddress, 500);
+    const address = cleanText(body.address, 500);
+    const city = cleanText(body.city, 100);
+    const postalCode = cleanText(body.postalCode, 20);
     const notes = cleanText(body.notes, 1000);
+    const saveDetails = body.saveDetails === true;
+    const checkoutRequestId = body.checkoutRequestId;
 
-    if (phone === null || !/^[0-9+()\-\s]{6,20}$/.test(phone)) {
+    if (fullName === null || fullName.length < 2) {
+      return NextResponse.json({ message: "Please enter your full name." }, { status: 400 });
+    }
+    if (!user && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)) {
+      return NextResponse.json({ message: "Please enter a valid email address." }, { status: 400 });
+    }
+    if (phone === null || !/^[0-9+()\-\s]{6,20}$/.test(phone) || phone.replace(/\D/g, "").length < 6) {
       return NextResponse.json({ message: "Please enter a valid phone number." }, { status: 400 });
     }
-    if (shippingAddress === null || shippingAddress.length < 5) {
-      return NextResponse.json({ message: "Please enter your shipping address." }, { status: 400 });
+    if (address === null || address.length < 5) {
+      return NextResponse.json({ message: "Please enter your delivery address." }, { status: 400 });
+    }
+    if (city === null || city.length < 2) {
+      return NextResponse.json({ message: "Please enter your city." }, { status: 400 });
+    }
+    if (postalCode === null) {
+      return NextResponse.json({ message: "Postal code is too long." }, { status: 400 });
     }
     if (notes === null) {
       return NextResponse.json({ message: "Notes are too long." }, { status: 400 });
+    }
+    if (body.saveDetails !== undefined && typeof body.saveDetails !== "boolean") {
+      return NextResponse.json({ message: "Invalid saved-details choice." }, { status: 400 });
+    }
+    if (typeof checkoutRequestId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(checkoutRequestId)) {
+      return NextResponse.json({ message: "Please refresh checkout and try again." }, { status: 400 });
     }
 
     const parsed = parseQuantities(body.items);
@@ -75,14 +108,29 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const open = await Order.countDocuments({ userId: user.id, status: "pending" });
+    const customerEmail = user?.email.toLowerCase() ?? email;
+    const shippingAddress = [address, city, postalCode].filter(Boolean).join(", ");
+    const belongsToRequester = (order: { userId?: string; customerEmail?: string }) =>
+      user ? order.userId === user.id : !order.userId && order.customerEmail?.toLowerCase() === customerEmail;
+    const duplicate = await Order.findOne({ checkoutRequestId }).lean<{ userId?: string; customerEmail?: string } & Record<string, unknown>>();
+    if (duplicate) {
+      if (!belongsToRequester(duplicate)) {
+        return NextResponse.json({ message: "Could not safely verify this checkout request. Please refresh and try again." }, { status: 409, headers: NO_STORE });
+      }
+      return NextResponse.json({ order: toOrderView(duplicate) }, { headers: NO_STORE });
+    }
+
+    const openFilter = user ? { userId: user.id } : { customerEmail };
+    const [open, checked] = await Promise.all([
+      Order.countDocuments({ ...openFilter, status: "pending" }),
+      checkLines(parsed.quantities),
+    ]);
     if (open >= MAX_OPEN_ORDERS) {
-      return NextResponse.json({ message: "You have too many pending orders. Please wait for confirmation." }, { status: 429 });
+      return NextResponse.json({ message: "There are too many pending orders for these details. Please contact us to place another order." }, { status: 429 });
     }
 
     // Availability is enforced here, on the server, never trusted from the browser. Stock itself is not
     // deducted at placement; the admin deducts it when confirming the order.
-    const checked = await checkLines(parsed.quantities);
     const problems = checked.filter((line) => line.state !== "ok");
     if (problems.length > 0) {
       return NextResponse.json(
@@ -104,18 +152,39 @@ export async function POST(request: Request) {
 
     const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    const order = await Order.create({
-      _id: createId("order"),
-      userId: user.id, // always from the session
-      customerName: user.name,
-      customerEmail: user.email,
-      phone,
-      shippingAddress,
-      notes: notes || undefined,
-      items,
-      total,
-      status: "pending",
-    });
+    if (user) {
+      if (saveDetails) {
+        await User.updateOne(
+          { _id: user.id },
+          { $set: { checkoutDetails: { fullName, phone, address, city, ...(postalCode ? { postalCode } : {}) } } },
+        );
+      } else {
+        await User.updateOne({ _id: user.id }, { $unset: { checkoutDetails: 1 } });
+      }
+    }
+
+    let order;
+    try {
+      order = await Order.create({
+        _id: createId("order"),
+        ...(user ? { userId: user.id } : {}),
+        checkoutRequestId,
+        customerName: fullName,
+        customerEmail,
+        phone,
+        shippingAddress,
+        notes: notes || undefined,
+        items,
+        total,
+        status: "pending",
+      });
+    } catch (error) {
+      const duplicateKey = error && typeof error === "object" && "code" in error && error.code === 11000;
+      if (!duplicateKey) throw error;
+      const retryOrder = await Order.findOne({ checkoutRequestId }).lean<Record<string, unknown>>();
+      if (!retryOrder || !belongsToRequester(retryOrder as { userId?: string; customerEmail?: string })) throw error;
+      return NextResponse.json({ order: toOrderView(retryOrder) }, { headers: NO_STORE });
+    }
 
     after(async () => {
       try {
